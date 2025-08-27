@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 1000px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2, h3 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 30px; }
+        .movie-info { display: flex; flex-wrap: wrap; gap: 30px; }
+        .movie-poster img { width: 100%; max-width: 250px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .movie-details { flex: 1; min-width: 300px; }
+        .movie-details p { margin: 0 0 10px; }
+        .movie-meta span { display: inline-block; padding: 5px 12px; background-color: #e7e7e7; border-radius: 15px; margin-right: 5px; margin-bottom: 8px; font-size: 0.9em; }
+        .episodes-list, .backdrop-gallery, .actors-list { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; list-style: none; }
+        .episodes-list a { display: block; padding: 8px 15px; background-color: #f0f0f0; border: 1px solid #ccc; text-decoration: none; color: black; border-radius: 4px; transition: background-color 0.2s; }
+        .episodes-list a:hover { background-color: #ddd; }
+        .backdrop-gallery img { width: 230px; border-radius: 4px; }
+        .actors-list .actor { text-align: center; width: 120px; }
+        .actors-list img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; background-color: #eee; }
+        .actors-list .actor-name { font-weight: bold; }
+        .actors-list .character-name { font-size: 0.85em; color: #666; }
+        .trailer-button { 
+            display: inline-block; 
+            margin-top: 15px; 
+            padding: 10px 20px; 
+            background-color: #c00; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .trailer-button:hover { background-color: #900; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/">&laquo; Trở về trang chủ</a>
+        
+        <h1><%= movie.name %></h1>
+        <h3><%= movie.origin_name %> (<%= movie.year %>)</h3>
+
+        <div class="movie-info">
+            <div class="movie-poster">
+                <a href="<%= movie.thumb_url %>" target="_blank" title="Xem ảnh thumbnail">
+                    <img src="<%= movie.poster_url %>" alt="Poster of <%= movie.name %>">
+                </a>
+            </div>
+            <div class="movie-details">
+                <p><strong>Trạng thái:</strong> <%= movie.status %></p>
+                <p><strong>Loại phim:</strong> <%= movie.type %></p>
+                <p><strong>Tập hiện tại:</strong> <%= movie.episode_current %></p>
+                <p><strong>Tổng số tập:</strong> <%= movie.episode_total %></p>
+                <p><strong>Thời lượng:</strong> <%= movie.time %></p>
+                <p><strong>Chất lượng:</strong> <%= movie.quality %></p>
+                <p><strong>Ngôn ngữ:</strong> <%= movie.lang %></p>
+                <p><strong>Lượt xem:</strong> <%= movie.view ? movie.view.toLocaleString('vi-VN') : 'N/A' %></p>
+                <p><strong>Chiếu rạp:</strong> <%= movie.chieurap ? 'Có' : 'Không' %></p>
+                <p><strong>Cập nhật:</strong> <%= new Date(movie.modified_at).toLocaleDateString('vi-VN') %></p>
+                
+                <div class="movie-meta">
+                    <strong>Thể loại:</strong>
+                    <% if (movie.Categories && movie.Categories.length > 0) { %>
+                        <% movie.Categories.forEach(cat => { %>
+                            <span><%= cat.name %></span>
+                        <% }) %>
+                    <% } %>
+                </div>
+                <div class="movie-meta" style="margin-top: 10px;">
+                    <strong>Quốc gia:</strong>
+                     <% if (movie.Countries && movie.Countries.length > 0) { %>
+                        <% movie.Countries.forEach(country => { %>
+                            <span><%= country.name %></span>
+                        <% }) %>
+                    <% } %>
+                </div>
+
+                <% if (movie.trailer_url) { %>
+                    <a href="<%= movie.trailer_url %>" target="_blank" class="trailer-button">Xem Trailer</a>
+                <% } %>
+            </div>
+        </div>
+        
+        <div class="movie-content">
+            <h3>Nội dung phim</h3>
+            <%- movie.content %>
+        </div>
+
+        <div class="movie-actors">
+             <h2>Diễn viên</h2>
+             <div class="actors-list">
+                <% if (movie.People && movie.People.length > 0) { %>
+                    <% movie.People.forEach(person => { %>
+                        <div class="actor">
+                            <img src="https://image.tmdb.org/t/p/w185<%= person.profile_path %>" alt="<%= person.name %>" onerror="this.onerror=null; this.src='/images/default_avatar.png';">
+                            <div class="actor-name"><%= person.name %></div>
+                            <div class="character-name"><%= person.MoviePerson.character %></div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <p>Chưa có thông tin diễn viên.</p>
+                <% } %>
+             </div>
+        </div>
+
+        <div class="movie-episodes">
+            <h2>Danh sách tập</h2>
+            <% if (movie.Episodes && movie.Episodes.length > 0) { %>
+                <ul class="episodes-list">
+                <% movie.Episodes.forEach(ep => { %>
+                    <li><a href="<%= ep.link_embed %>" target="_blank" title="<%= ep.server_name %>">Tập <%= ep.name %></a></li>
+                <% }) %>
+                </ul>
+            <% } else { %>
+                <p>Phim chưa có tập nào.</p>
+            <% } %>
+        </div>
+        
+        <div class="movie-images">
+            <h2>Hình ảnh phim</h2>
+            <div class="backdrop-gallery">
+                <% if (movie.Images && movie.Images.length > 0) { %>
+                    <% movie.Images.filter(img => img.type === 'backdrop').forEach(image => { %>
+                        <img src="<%= image.file_path %>" alt="Backdrop image">
+                    <% }) %>
+                <% } else { %>
+                    <p>Không có hình ảnh bổ sung.</p>
+                <% } %>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

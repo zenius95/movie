@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="vi" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { font-size: 0.9rem; }
+        .card { backdrop-filter: blur(10px); background-color: rgba(45, 55, 72, 0.85); }
+        .form-label { color: #a0aec0; }
+        
+        .results-table-wrapper {
+            max-height: 450px;
+            overflow-y: auto;
+        }
+        #results-table img {
+            width: 40px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            vertical-align: middle;
+        }
+        .log-container {
+            max-height: 300px;
+            font-size: 0.8rem;
+            background-color: #1a202c;
+            overflow-y: auto;
+        }
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 0.8em; font-weight: bold; text-transform: uppercase; }
+        .status-created { background-color: var(--bs-success); color: white; }
+        .status-updated { background-color: var(--bs-warning); color: black; }
+        .status-skipped { background-color: var(--bs-secondary); color: white; }
+        .log-info { color: #999; } .log-success { color: #28a745; } .log-error { color: #dc3545; } .log-warning { color: #ffc107; }
+    </style>
+</head>
+<body class="bg-dark-subtle">
+    <div class="container-fluid p-4">
+        <div class="row g-4">
+            <div class="col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header d-flex align-items-center"><i class="bi bi-gear-fill me-2"></i><h5 class="mb-0">Bảng điều khiển</h5></div>
+                    <div class="card-body d-flex flex-column">
+                        <div id="settings-form">
+                            <h6>Tùy chọn</h6>
+                            <div class="row g-2 mb-3">
+                                <div class="col"><label for="maxPages" class="form-label">Trang/DM</label><input type="number" class="form-control" id="maxPages" value="2"></div>
+                                <div class="col"><label for="maxMovies" class="form-label">Tổng phim</label><input type="number" class="form-control" id="maxMovies" value="20"></div>
+                                <div class="col"><label for="concurrency" class="form-label">Đồng thời</label><input type="number" class="form-control" id="concurrency" value="3"></div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col"><label for="delayPages" class="form-label">Delay Trang (ms)</label><input type="number" class="form-control" id="delayPages" value="300"></div>
+                                <div class="col"><label for="delayBatches" class="form-label">Delay Lô (ms)</label><input type="number" class="form-control" id="delayBatches" value="1000"></div>
+                            </div>
+                            
+                            <h6>Nguồn Đồng bộ</h6>
+                            <div class="input-group mb-3">
+                                <select class="form-select" id="sync-type" style="flex-grow: 0; width: auto;">
+                                    <option value="danh-muc" selected>Danh mục</option>
+                                    <option value="the-loai">Thể loại</option>
+                                    <option value="quoc-gia">Quốc gia</option>
+                                    <option value="nam-phat-hanh">Năm</option>
+                                    <option value="tim-kiem">Từ khóa</option>
+                                </select>
+                                <select class="form-select" id="sync-value"></select>
+                                <input type="text" class="form-control d-none" id="sync-keyword" placeholder="Nhập từ khóa...">
+                            </div>
+
+                            <h6>Lọc & Sắp xếp</h6>
+                            <div class="row g-2 mb-3">
+                                <div class="col-12">
+                                    <label for="category-filter" class="form-label">Lọc theo Thể loại</label>
+                                    <select id="category-filter" class="form-select"></select>
+                                </div>
+                                <div class="col-6">
+                                    <label for="country-filter" class="form-label">Lọc theo Quốc gia</label>
+                                    <select id="country-filter" class="form-select"></select>
+                                </div>
+                                <div class="col-6">
+                                    <label for="year-filter" class="form-label">Lọc theo Năm</label>
+                                    <select id="year-filter" class="form-select"></select>
+                                </div>
+                            </div>
+                             <div class="row g-2 mb-3">
+                                <div class="col">
+                                    <label for="sort_field" class="form-label">Sắp xếp theo</label>
+                                    <select id="sort_field" class="form-select">
+                                        <option value="">Mặc định</option>
+                                        <option value="modified.time">Thời gian sửa</option>
+                                        <option value="year">Năm</option>
+                                        <option value="_id">ID</option>
+                                    </select>
+                                </div>
+                                <div class="col">
+                                    <label for="sort_type" class="form-label">Thứ tự</label>
+                                    <select id="sort_type" class="form-select">
+                                        <option value="">Mặc định</option>
+                                        <option value="desc">Giảm dần</option>
+                                        <option value="asc">Tăng dần</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="d-grid gap-2">
+                                <button id="syncButton" class="btn btn-primary btn-lg"><i class="bi bi-arrow-repeat me-2"></i><span id="button-text">Bắt đầu</span></button>
+                                <div class="btn-group">
+                                    <button id="pauseButton" class="btn btn-warning w-50" disabled><i class="bi bi-pause-fill me-1"></i>Pause</button>
+                                    <button id="stopButton" class="btn btn-danger w-50" disabled><i class="bi bi-stop-circle-fill me-1"></i>Stop</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-9">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header"><h5 class="mb-0">Tiến trình</h5></div>
+                    <div class="card-body">
+                        <div class="progress" role="progressbar" style="height: 25px;">
+                            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%">0%</div>
+                        </div>
+                        <div class="row text-center mt-3">
+                            <div class="col"><div class="fs-4 fw-bold" id="stat-found">0</div><div class="text-muted small">Mục tiêu</div></div>
+                            <div class="col text-success"><div class="fs-4 fw-bold" id="stat-success">0</div><div class="text-muted small">Thành công</div></div>
+                            <div class="col text-danger"><div class="fs-4 fw-bold" id="stat-errors">0</div><div class="text-muted small">Lỗi</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-header"><h5 class="mb-0">Kết quả (Phim được tạo mới/cập nhật)</h5></div>
+                    <div class="card-body p-0">
+                         <div class="table-responsive results-table-wrapper">
+                            <table class="table table-dark table-hover table-sm align-middle mb-0">
+                                <thead><tr><th>Ảnh</th><th>Tên phim</th><th>Năm</th><th>Thể loại</th><th>Quốc gia</th><th>Trạng thái</th></tr></thead>
+                                <tbody id="results-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                 <div class="card shadow-sm mt-4">
+                    <div class="card-header"><h5 class="mb-0">Log chi tiết</h5></div>
+                    <div id="log-container" class="card-body bg-dark text-white-50 log-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const SOURCE_CATEGORIES = ['phim-moi', 'phim-bo', 'phim-le', 'tv-shows', 'phim-bo-dang-chieu', 'phim-bo-hoan-thanh', 'phim-sap-chieu'];
+        const socket = io();
+        let isPaused = false;
+        let totalMoviesToProcess = 0;
+        
+                const elements = {
+            syncButton: document.getElementById('syncButton'),
+            buttonText: document.getElementById('button-text'),
+            pauseButton: document.getElementById('pauseButton'),
+            stopButton: document.getElementById('stopButton'),
+            logContainer: document.getElementById('log-container'),
+            resultsBody: document.getElementById('results-body'),
+            progressBar: document.getElementById('progress-bar'),
+            statFound: document.getElementById('stat-found'),
+            statSuccess: document.getElementById('stat-success'),
+            statErrors: document.getElementById('stat-errors'),
+            form: document.getElementById('settings-form'),
+            inputs: document.querySelectorAll('#settings-form input, #settings-form select'),
+            
+            syncType: document.getElementById('sync-type'),
+            syncValueSelect: document.getElementById('sync-value'),
+            syncKeywordInput: document.getElementById('sync-keyword'),
+            categoryFilter: document.getElementById('category-filter'),
+            countryFilter: document.getElementById('country-filter'),
+            yearFilter: document.getElementById('year-filter'),
+
+            categoryFilterParent: document.getElementById('category-filter').closest('.col-12'),
+            countryFilterParent: document.getElementById('country-filter').closest('.col-6'),
+            yearFilterParent: document.getElementById('year-filter').closest('.col-6'),
+
+            sortFieldParent: document.getElementById('sort_field').closest('.col'),
+            sortTypeParent: document.getElementById('sort_type').closest('.col'),
+        };
+
+        const ui = {
+            setSyncing(isSyncing) {
+                elements.syncButton.disabled = isSyncing;
+                elements.pauseButton.disabled = !isSyncing;
+                elements.stopButton.disabled = !isSyncing;
+                elements.buttonText.textContent = isSyncing ? 'Đang chạy...' : 'Bắt đầu';
+                elements.inputs.forEach(input => input.disabled = isSyncing);
+                if (!isSyncing) {
+                    this.setPaused(false);
+                }
+            },
+            setPaused(pausedState) {
+                isPaused = pausedState;
+                elements.pauseButton.innerHTML = isPaused ? '<i class="bi bi-play-fill me-1"></i>Resume' : '<i class="bi bi-pause-fill me-1"></i>Pause';
+                elements.pauseButton.classList.toggle('btn-warning', !isPaused);
+                elements.pauseButton.classList.toggle('btn-info', isPaused);
+            },
+            reset() {
+                this.setSyncing(false);
+                elements.logContainer.innerHTML = '';
+                elements.resultsBody.innerHTML = '';
+                elements.progressBar.style.width = '0%';
+                elements.progressBar.textContent = '0%';
+                elements.progressBar.classList.remove('bg-success', 'bg-danger', 'progress-bar-animated');
+                elements.progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+                ['statFound', 'statSuccess', 'statErrors'].forEach(key => elements[key].textContent = '0');
+            }
+        };
+
+        const settings = {
+            get() {
+                const opts = {
+                    maxPages: parseInt(elements.form.querySelector('#maxPages').value, 10) || 1,
+                    maxMovies: parseInt(elements.form.querySelector('#maxMovies').value, 10) || 10,
+                    delayPages: parseInt(elements.form.querySelector('#delayPages').value, 10) || 500,
+                    delayBatches: parseInt(elements.form.querySelector('#delayBatches').value, 10) || 1000,
+                    concurrency: parseInt(elements.form.querySelector('#concurrency').value, 10) || 5,
+                    sort_field: elements.sortFieldParent.classList.contains('d-none') ? '' : elements.form.querySelector('#sort_field').value,
+                    sort_type: elements.sortTypeParent.classList.contains('d-none') ? '' : elements.form.querySelector('#sort_type').value,
+                    sync_type: elements.syncType.value,
+                    sync_value: elements.syncType.value === 'tim-kiem' ? elements.syncKeywordInput.value : elements.syncValueSelect.value,
+                    category: elements.categoryFilterParent.classList.contains('d-none') ? '' : elements.categoryFilter.value,
+                    country: elements.countryFilterParent.classList.contains('d-none') ? '' : elements.countryFilter.value,
+                    year: elements.yearFilterParent.classList.contains('d-none') ? '' : elements.yearFilter.value
+                };
+                localStorage.setItem('syncSettings', JSON.stringify(opts));
+                return opts;
+            },
+            load() {
+                const saved = JSON.parse(localStorage.getItem('syncSettings')) || {};
+                elements.form.querySelector('#maxPages').value = saved.maxPages || 2;
+                elements.form.querySelector('#maxMovies').value = saved.maxMovies || 20;
+                elements.form.querySelector('#delayPages').value = saved.delayPages || 300;
+                elements.form.querySelector('#delayBatches').value = saved.delayBatches || 1000;
+                elements.form.querySelector('#concurrency').value = saved.concurrency || 3;
+                elements.form.querySelector('#sort_field').value = saved.sort_field || '';
+                elements.form.querySelector('#sort_type').value = saved.sort_type || '';
+                elements.syncType.value = saved.sync_type || 'danh-muc';
+                if (saved.sync_type === 'tim-kiem') {
+                    elements.syncKeywordInput.value = saved.sync_value || '';
+                }
+                elements.categoryFilter.value = saved.category || '';
+                elements.countryFilter.value = saved.country || '';
+                elements.yearFilter.value = saved.year || '';
+            }
+        };
+
+        const populateSelect = async (selectElement, url, valueKey, nameKey, isSourceData) => {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`API request to ${url} failed`);
+                const responseData = await response.json();
+                if (responseData.status !== 'success' || !responseData.data || !Array.isArray(responseData.data.items)) {
+                    throw new Error(`Invalid API response structure from ${url}`);
+                }
+                const items = responseData.data.items;
+                selectElement.innerHTML = isSourceData ? '' : '<option value="">Tất cả</option>';
+                items.forEach(item => {
+                    const value = valueKey ? item[valueKey] : item;
+                    const name = nameKey ? item[nameKey] : item;
+                    selectElement.innerHTML += `<option value="${value}">${name}</option>`;
+                });
+            } catch (error) {
+                console.error(`Failed to populate select ${selectElement.id}:`, error);
+                selectElement.innerHTML = '<option value="">Lỗi khi tải</option>';
+            }
+        };
+
+        function updateSyncValueOptions() {
+            const type = elements.syncType.value;
+            const savedSettings = JSON.parse(localStorage.getItem('syncSettings')) || {};
+
+            elements.syncValueSelect.classList.toggle('d-none', type === 'tim-kiem');
+            elements.syncKeywordInput.classList.toggle('d-none', type !== 'tim-kiem');
+
+            // Show/hide filter options based on sync type
+            const isSearchType = type === 'tim-kiem';
+            elements.categoryFilterParent.classList.toggle('d-none', isSearchType || type === 'the-loai');
+            elements.countryFilterParent.classList.toggle('d-none', isSearchType || type === 'quoc-gia');
+            elements.yearFilterParent.classList.toggle('d-none', isSearchType || type === 'nam-phat-hanh');
+
+            // Show/hide sort options based on sync type
+            elements.sortFieldParent.classList.toggle('d-none', isSearchType);
+            elements.sortTypeParent.classList.toggle('d-none', isSearchType);
+
+            const loadAndSetValue = (api, key, name, isSource) => {
+                populateSelect(elements.syncValueSelect, api, key, name, isSource).then(() => {
+                     if (savedSettings.sync_type === type) elements.syncValueSelect.value = savedSettings.sync_value;
+                });
+            };
+
+            if (type === 'danh-muc') {
+                elements.syncValueSelect.innerHTML = SOURCE_CATEGORIES.map(cat => `<option value="${cat}">${cat.replace(/-/g, ' ')}</option>`).join('');
+                if (savedSettings.sync_type === type) elements.syncValueSelect.value = savedSettings.sync_value;
+            } else if (type === 'the-loai') {
+                loadAndSetValue('/api/the-loai', 'slug', 'name', true);
+            } else if (type === 'quoc-gia') {
+                loadAndSetValue('/api/quoc-gia', 'slug', 'name', true);
+            } else if (type === 'nam-phat-hanh') {
+                loadAndSetValue('/api/nam-phat-hanh', 'year', 'year', true);
+            }
+        }
+
+        async function initializeApp() {
+            await Promise.all([
+                populateSelect(elements.categoryFilter, '/api/the-loai', 'slug', 'name', false),
+                populateSelect(elements.countryFilter, '/api/quoc-gia', 'slug', 'name', false),
+                populateSelect(elements.yearFilter, '/api/nam-phat-hanh', 'year', 'year', false)
+            ]);
+
+            settings.load();
+            updateSyncValueOptions();
+            
+            elements.syncType.addEventListener('change', updateSyncValueOptions);
+
+            socket.on('sync-state', (state) => {
+                if(state.status === 'running' || state.status === 'paused') {
+                    ui.setSyncing(true);
+                    ui.setPaused(state.status === 'paused');
+                    if (state.logs) state.logs.forEach(log => logToUI(log));
+                    if (state.results) state.results.forEach(movie => addResultRow(movie));
+                    if (state.progress) {
+                        totalMoviesToProcess = state.progress.total;
+                        updateProgress(state.progress);
+                    }
+                }
+            });
+        }
+        
+        elements.syncButton.addEventListener('click', () => {
+            const options = settings.get();
+            if (!options.sync_value) {
+                alert('Vui lòng chọn hoặc nhập giá trị cho nguồn đồng bộ.'); return;
+            }
+            ui.reset();
+            ui.setSyncing(true);
+            socket.emit('sync:start', options);
+        });
+
+        elements.pauseButton.addEventListener('click', () => {
+            isPaused = !isPaused;
+            socket.emit(isPaused ? 'sync:pause' : 'sync:resume');
+            ui.setPaused(isPaused);
+        });
+
+        elements.stopButton.addEventListener('click', () => {
+            socket.emit('sync:stop');
+        });
+
+        const logToUI = (data) => {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-${data.type}`;
+            logEntry.textContent = `[${data.timestamp}] ${data.message}`;
+            elements.logContainer.appendChild(logEntry);
+            elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
+        };
+        socket.on('sync-log', logToUI);
+
+        socket.on('sync-start', (data) => {
+            totalMoviesToProcess = data.total;
+            elements.statFound.textContent = totalMoviesToProcess;
+        });
+
+        const updateProgress = (data) => {
+            const processedItems = data.processed;
+            const percentage = totalMoviesToProcess === 0 ? 0 : Math.round((processedItems / totalMoviesToProcess) * 100);
+            elements.progressBar.style.width = `${percentage}%`;
+            elements.progressBar.textContent = `${percentage}%`;
+            elements.statSuccess.textContent = data.success;
+            elements.statErrors.textContent = data.errors;
+        };
+        socket.on('sync-progress', updateProgress);
+
+        const addResultRow = (movie) => {
+            if (movie.status === 'created' || movie.status === 'updated') {
+                const newRow = elements.resultsBody.insertRow(0);
+                const statusClass = movie.status === 'created' ? 'text-bg-success' : 'text-bg-warning';
+                newRow.innerHTML = `
+                    <td><img src="${movie.thumb}" alt="thumb" height="70"></td>
+                    <td>${movie.name}</td>
+                    <td><span class="badge text-bg-secondary">${movie.year || ''}</span></td>
+                    <td>${movie.categories || ''}</td>
+                    <td>${movie.countries || ''}</td>
+                    <td><span class="status ${statusClass}">${movie.status}</span></td>
+                `;
+            }
+        };
+        socket.on('movie-synced', addResultRow);
+
+        socket.on('sync-finished', (status) => {
+            ui.setSyncing(false);
+            elements.progressBar.classList.remove('progress-bar-animated');
+            elements.progressBar.classList.toggle('bg-success', status !== 'stopped');
+            elements.progressBar.classList.toggle('bg-danger', status === 'stopped');
+        });
+        
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
