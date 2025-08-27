@@ -1,0 +1,54 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3><%= title %></h3>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-circle me-1"></i> Thêm Năm
+    </button>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Năm</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% years.forEach(item => { %>
+                    <tr>
+                        <td><strong><%= item.year %></strong></td>
+                        <td>
+                            <form action="/admin/years/delete/<%= item.year %>" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa năm này?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                            </form>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/admin/years" method="POST">
+          <div class="modal-header">
+            <h5 class="modal-title">Thêm Năm phát hành mới</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+                <div class="mb-3">
+                    <label for="year" class="form-label">Năm (ví dụ: 2024)</label>
+                    <input type="number" class="form-control" id="year" name="year" required>
+                </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button type="submit" class="btn btn-primary">Lưu</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>

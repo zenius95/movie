@@ -1,0 +1,53 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Danh sách phim</h3>
+    <form action="/admin/movies" method="GET" class="d-flex">
+        <input class="form-control me-2" type="search" placeholder="Tìm kiếm phim..." name="search" value="<%= searchQuery %>">
+        <button class="btn btn-outline-success" type="submit">Tìm</button>
+    </form>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Ảnh</th>
+                    <th>Tên phim</th>
+                    <th>Năm</th>
+                    <th>Cập nhật</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% movies.forEach(movie => { %>
+                    <tr>
+                        <td><img src="<%= movie.thumb_url %>" alt="<%= movie.name %>" width="40" height="60" style="object-fit: cover;"></td>
+                        <td><%= movie.name %></td>
+                        <td><span class="badge text-bg-secondary"><%= movie.year %></span></td>
+                        <td><%= new Date(movie.modified_at).toLocaleDateString('vi-VN') %></td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="/admin/movies/edit/<%= movie._id %>" class="btn btn-sm btn-warning">Sửa</a>
+                                <form action="/admin/movies/delete/<%= movie._id %>" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa phim này?');">
+                                    <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<% if (totalPages > 1) { %>
+<nav class="mt-4">
+  <ul class="pagination justify-content-center">
+    <% for(let i = 1; i <= totalPages; i++) { %>
+      <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+        <a class="page-link" href="/admin/movies?page=<%= i %>&search=<%= searchQuery %>"><%= i %></a>
+      </li>
+    <% } %>
+  </ul>
+</nav>
+<% } %>

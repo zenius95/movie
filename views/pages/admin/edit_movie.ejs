@@ -1,0 +1,250 @@
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+
+<form action="/admin/movies/edit/<%= movie._id %>" method="POST">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="movieTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-tab-pane" type="button" role="tab">
+                                <i class="bi bi-info-circle me-1"></i> Thông tin chung
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="episodes-tab" data-bs-toggle="tab" data-bs-target="#episodes-tab-pane" type="button" role="tab">
+                                <i class="bi bi-collection-play me-1"></i> Danh sách tập
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images-tab-pane" type="button" role="tab">
+                                <i class="bi bi-images me-1"></i> Thư viện ảnh
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="movieTabContent">
+                        <div class="tab-pane fade show active" id="info-tab-pane" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="name" class="form-label">Tên phim</label>
+                                    <input type="text" class="form-control" id="name" name="name" value="<%= movie.name %>">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="origin_name" class="form-label">Tên gốc</label>
+                                    <input type="text" class="form-control" id="origin_name" name="origin_name" value="<%= movie.origin_name %>">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="slug" class="form-label">Slug</label>
+                                <input type="text" class="form-control" id="slug" name="slug" value="<%= movie.slug %>">
+                            </div>
+                            <div class="mb-3">
+                                <label for="content" class="form-label">Nội dung</label>
+                                <textarea class="form-control" id="content" name="content" rows="8"><%= movie.content %></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="thumb_url" class="form-label">URL Ảnh Thumbnail</label>
+                                    <input type="text" class="form-control" id="thumb_url" name="thumb_url" value="<%= movie.thumb_url %>">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="poster_url" class="form-label">URL Ảnh Poster</label>
+                                    <input type="text" class="form-control" id="poster_url" name="poster_url" value="<%= movie.poster_url %>">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="trailer_url" class="form-label">URL Trailer (Youtube)</label>
+                                <input type="text" class="form-control" id="trailer_url" name="trailer_url" value="<%= movie.trailer_url %>">
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="episodes-tab-pane" role="tabpanel">
+                            <div class="d-flex justify-content-end mb-3">
+                                <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addEpisodeModal">
+                                    <i class="bi bi-plus-circle"></i> Thêm tập mới
+                                </button>
+                            </div>
+                            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                <table class="table table-hover table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Server</th>
+                                            <th>Tên tập</th>
+                                            <th>Link Embed</th>
+                                            <th class="text-end">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% movie.Episodes.forEach(ep => { %>
+                                        <tr>
+                                            <td><%= ep.server_name %></td>
+                                            <td><strong><%= ep.name %></strong></td>
+                                            <td><input type="text" class="form-control form-control-sm" value="<%= ep.link_embed %>" readonly></td>
+                                            <td class="text-end">
+                                                <form action="/admin/episodes/delete/<%= ep.id %>" method="POST" onsubmit="return confirm('Bạn chắc chắn muốn xóa tập này?')">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        <% }) %>
+                                        <% if (movie.Episodes.length === 0) { %>
+                                            <tr><td colspan="4" class="text-center text-muted py-3">Chưa có tập phim nào.</td></tr>
+                                        <% } %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="images-tab-pane" role="tabpanel">
+                             <div class="row g-2">
+                                <% movie.Images.forEach(image => { %>
+                                    <% if (image.type === 'backdrop') { %>
+                                        <div class="col-md-4">
+                                            <img src="<%= image.file_path %>" class="img-fluid rounded" alt="Backdrop">
+                                        </div>
+                                    <% } %>
+                                <% }) %>
+                                <% if (movie.Images.filter(i => i.type === 'backdrop').length === 0) { %>
+                                    <p class="text-center text-muted">Không có hình ảnh backdrop.</p>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">Hành động</div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                         <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Lưu thay đổi</button>
+                         <a href="/admin/movies" class="btn btn-secondary">Quay lại danh sách</a>
+                    </div>
+                     <hr>
+                     <p class="mb-1"><small><strong>ID:</strong> <%= movie._id %></small></p>
+                     <p class="mb-0"><small><strong>Cập nhật lần cuối:</strong> <%= new Date(movie.modified_at).toLocaleString('vi-VN') %></small></p>
+                </div>
+            </div>
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">Thông tin chi tiết</div>
+                 <div class="card-body">
+                     <div class="row">
+                        <div class="col-6 mb-3">
+                            <label for="status" class="form-label">Trạng thái</label>
+                            <select name="status" id="status" class="form-select">
+                                <option value="ongoing" <%= movie.status === 'ongoing' ? 'selected' : '' %>>Đang chiếu</option>
+                                <option value="completed" <%= movie.status === 'completed' ? 'selected' : '' %>>Hoàn thành</option>
+                            </select>
+                        </div>
+                         <div class="col-6 mb-3">
+                            <label for="type" class="form-label">Loại phim</label>
+                            <select name="type" id="type" class="form-select">
+                                <option value="series" <%= movie.type === 'series' ? 'selected' : '' %>>Phim bộ</option>
+                                <option value="single" <%= movie.type === 'single' ? 'selected' : '' %>>Phim lẻ</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label for="year" class="form-label">Năm</label>
+                            <select name="year" id="year" class="form-select">
+                                <% allYears.forEach(y => { %>
+                                    <option value="<%= y.year %>" <%= movie.year == y.year ? 'selected' : '' %>><%= y.year %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+                         <div class="col-6 mb-3">
+                             <label for="lang" class="form-label">Ngôn ngữ</label>
+                            <input type="text" class="form-control" id="lang" name="lang" value="<%= movie.lang %>">
+                        </div>
+                    </div>
+                 </div>
+            </div>
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">Thể loại & Quốc gia</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="categories" class="form-label">Thể loại</label>
+                        <select class="form-select" id="categories" name="categories" multiple>
+                            <% allCategories.forEach(cat => { %>
+                                <option value="<%= cat.id %>" <%= movie.Categories.some(mc => mc.id === cat.id) ? 'selected' : '' %> >
+                                    <%= cat.name %>
+                                </option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="countries" class="form-label">Quốc gia</label>
+                        <select class="form-select" id="countries" name="countries" multiple>
+                            <% allCountries.forEach(country => { %>
+                                <option value="<%= country.id %>" <%= movie.Countries.some(mc => mc.id === country.id) ? 'selected' : '' %> >
+                                    <%= country.name %>
+                                </option>
+                            <% }) %>
+                        </select>
+                    </div>
+                </div>
+            </div>
+             <div class="card shadow-sm mb-4">
+                <div class="card-header">Ảnh Poster</div>
+                <div class="card-body text-center">
+                    <img src="<%= movie.poster_url %>" class="img-fluid rounded" alt="Poster">
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="modal fade" id="addEpisodeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/admin/episodes" method="POST">
+        <input type="hidden" name="movie_id" value="<%= movie._id %>">
+        <div class="modal-header">
+          <h5 class="modal-title">Thêm tập phim mới</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label">Tên Server</label>
+                <input type="text" class="form-control" name="server_name" value="Vietsub #1" required>
+            </div>
+             <div class="mb-3">
+                <label class="form-label">Tên tập (ví dụ: 1, 2, Full...)</label>
+                <input type="text" class="form-control" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Slug</label>
+                <input type="text" class="form-control" name="slug" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Link Embed</label>
+                <input type="text" class="form-control" name="link_embed" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Link M3U8</label>
+                <input type="text" class="form-control" name="link_m3u8">
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+          <button type="submit" class="btn btn-primary">Thêm tập</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#categories, #countries, #year').select2({
+            theme: "bootstrap-5",
+            placeholder: "Chọn..."
+        });
+    });
+</script>

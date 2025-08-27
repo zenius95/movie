@@ -1,0 +1,75 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3><%= title %></h3>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-circle me-1"></i> Thêm Quốc gia
+    </button>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tên Quốc gia</th>
+                    <th>Slug</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% countries.forEach(item => { %>
+                    <tr>
+                        <td><code><%= item.id %></code></td>
+                        <td><%= item.name %></td>
+                        <td><%= item.slug %></td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal-<%= item.id %>">Sửa</button>
+                                
+                                <form action="/admin/countries/delete/<%= item.id %>" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa quốc gia này?');">
+                                    <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addModal" tabindex="-1">
+  </div>
+
+<% countries.forEach(item => { %>
+<div class="modal fade" id="editModal-<%= item.id %>" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/admin/countries/edit/<%= item.id %>" method="POST">
+          <div class="modal-header">
+            <h5 class="modal-title">Sửa Quốc gia</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">ID</label>
+                    <input type="text" class="form-control" value="<%= item.id %>" disabled>
+                </div>
+                <div class="mb-3">
+                    <label for="name-<%= item.id %>" class="form-label">Tên</label>
+                    <input type="text" class="form-control" id="name-<%= item.id %>" name="name" value="<%= item.name %>" required>
+                </div>
+                 <div class="mb-3">
+                    <label for="slug-<%= item.id %>" class="form-label">Slug</label>
+                    <input type="text" class="form-control" id="slug-<%= item.id %>" name="slug" value="<%= item.slug %>" required>
+                </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+<% }) %>

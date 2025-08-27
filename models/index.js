@@ -8,12 +8,16 @@ const Person = require('./person')(sequelize, DataTypes);
 const Category = require('./category')(sequelize, DataTypes);
 const Country = require('./country')(sequelize, DataTypes);
 const Image = require('./image')(sequelize, DataTypes);
+const User = require('./user')(sequelize, DataTypes);
+const Year = require('./year')(sequelize, DataTypes); // <-- THÊM MODEL YEAR
 
-// === SỬA LỖI ĐỊNH NGHĨA BẢNG TRUNG GIAN ===
+// ===============================================
+// ĐỊNH NGHĨA CÁC MỐI QUAN HỆ
+// ===============================================
 
 // Movie <-> Category (Nhiều - Nhiều)
 Movie.belongsToMany(Category, { 
-    through: 'MovieCategory', // Sử dụng tên chuỗi thay vì định nghĩa riêng
+    through: 'MovieCategory',
     foreignKey: 'movie_id', 
     timestamps: false 
 });
@@ -35,7 +39,7 @@ Country.belongsToMany(Movie, {
     timestamps: false 
 });
 
-// Movie <-> Person (Nhiều - Nhiều)
+// Movie <-> Person (Nhiều - Nhiều, với bảng trung gian có thêm cột)
 const MoviePerson = sequelize.define('MoviePerson', {
     character: DataTypes.STRING
 }, { timestamps: false });
@@ -48,8 +52,6 @@ Person.belongsToMany(Movie, {
     foreignKey: 'person_id' 
 });
 
-// === KẾT THÚC PHẦN SỬA LỖI ===
-
 // Movie -> Episode (Một - Nhiều)
 Movie.hasMany(Episode, { foreignKey: 'movie_id', onDelete: 'CASCADE' });
 Episode.belongsTo(Movie, { foreignKey: 'movie_id' });
@@ -58,11 +60,16 @@ Episode.belongsTo(Movie, { foreignKey: 'movie_id' });
 Movie.hasMany(Image, { foreignKey: 'movie_id', onDelete: 'CASCADE' });
 Image.belongsTo(Movie, { foreignKey: 'movie_id' });
 
+// Year -> Movie (Một - Nhiều) <-- THÊM MỐI QUAN HỆ CHO NĂM
+Year.hasMany(Movie, { foreignKey: 'year', sourceKey: 'year' });
+Movie.belongsTo(Year, { foreignKey: 'year', targetKey: 'year' });
+
+
 // Đồng bộ models với database
 const initDb = async () => {
-  // Sử dụng 'force: true' MỘT LẦN DUY NHẤT để tạo lại schema đúng
-  await sequelize.sync({ after: true }); 
-  console.log("Database & tables have been recreated successfully!");
+  // SỬA Ở ĐÂY: Dùng alter: true để không làm mất dữ liệu khi khởi động lại
+  await sequelize.sync({ alter: true }); 
+  console.log("Database & tables have been synced successfully!");
 };
 
 module.exports = {
@@ -74,5 +81,7 @@ module.exports = {
   Category,
   Country,
   Image,
-  MoviePerson // Vẫn export để script sync có thể dùng
+  User,       // <-- EXPORT USER
+  Year,       // <-- EXPORT YEAR
+  MoviePerson
 };

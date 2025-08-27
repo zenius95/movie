@@ -1,0 +1,54 @@
+<div class="sidebar d-flex flex-column flex-shrink-0 p-3 text-white bg-dark">
+    <a href="/admin" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+        <i class="bi bi-film me-2"></i>
+        <span class="fs-4">Movie CMS</span>
+    </a>
+    <hr>
+    <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item">
+            <a href="/admin" class="nav-link text-white <%= title === 'Tổng quan' ? 'active' : '' %>">
+                <i class="bi bi-speedometer2 me-2"></i> Tổng quan
+            </a>
+        </li>
+        <li>
+            <a href="/admin/movies" class="nav-link text-white <%= title === 'Quản lý Phim' ? 'active' : '' %>">
+                <i class="bi bi-camera-reels me-2"></i> Quản lý Phim
+            </a>
+        </li>
+        <li>
+            <a href="/admin/years" class="nav-link text-white <%= title === 'Quản lý Năm phát hành' ? 'active' : '' %>">
+                <i class="bi bi-calendar-event me-2"></i> Năm phát hành
+            </a>
+        </li>
+        <li>
+            <a href="/admin/categories" class="nav-link text-white <%= title === 'Quản lý Thể loại' ? 'active' : '' %>">
+                <i class="bi bi-tags me-2"></i> Quản lý Thể loại
+            </a>
+        </li>
+        <li>
+            <a href="/admin/countries" class="nav-link text-white <%= title === 'Quản lý Quốc gia' ? 'active' : '' %>">
+                <i class="bi bi-globe-americas me-2"></i> Quản lý Quốc gia
+            </a>
+        </li>
+        <li>
+            <a href="/admin/sync" class="nav-link text-white">
+                <i class="bi bi-arrow-repeat me-2"></i> Đồng bộ dữ liệu
+            </a>
+        </li>
+        <% if (user && user.role === 'admin') { %>
+        <hr>
+        <li>
+            <a href="/admin/users" class="nav-link text-white <%= title === 'Quản lý Người dùng' ? 'active' : '' %>">
+                <i class="bi bi-people me-2"></i> Quản lý Người dùng
+            </a>
+        </li>
+        <% } %>
+    </ul>
+    <hr>
+    <div>
+        <a href="/" class="d-flex align-items-center text-white text-decoration-none">
+            <i class="bi bi-box-arrow-left me-2"></i>
+            <strong>Về trang chủ</strong>
+        </a>
+    </div>
+</div>

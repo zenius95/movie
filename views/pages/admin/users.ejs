@@ -1,0 +1,132 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3><%= title %></h3>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="bi bi-plus-circle me-1"></i> Thêm người dùng
+    </button>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tên đăng nhập</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                    <th>Ngày tạo</th>
+                    <th class="text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% users.forEach(userItem => { %>
+                    <tr>
+                        <td><%= userItem.id %></td>
+                        <td><strong><%= userItem.username %></strong></td>
+                        <td><%= userItem.email || 'N/A' %></td>
+                        <td>
+                            <% if (userItem.role === 'admin') { %>
+                                <span class="badge text-bg-danger">Admin</span>
+                            <% } else { %>
+                                <span class="badge text-bg-secondary">Editor</span>
+                            <% } %>
+                        </td>
+                        <td><%= new Date(userItem.createdAt).toLocaleDateString('vi-VN') %></td>
+                        <td class="text-end">
+                             <div class="btn-group">
+                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editUserModal-<%= userItem.id %>">
+                                    <i class="bi bi-pencil-fill"></i> Sửa
+                                </button>
+                                <% if (user.id !== userItem.id) { %>
+                                    <form action="/admin/users/delete/<%= userItem.id %>" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa người dùng này?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="bi bi-trash-fill"></i> Xóa
+                                        </button>
+                                    </form>
+                                <% } %>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addUserModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Thêm người dùng mới</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/admin/users" method="POST">
+          <div class="modal-body">
+                <div class="mb-3">
+                    <label for="add-username" class="form-label">Tên đăng nhập</label>
+                    <input type="text" class="form-control" id="add-username" name="username" required>
+                </div>
+                <div class="mb-3">
+                    <label for="add-email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="add-email" name="email">
+                </div>
+                <div class="mb-3">
+                    <label for="add-password" class="form-label">Mật khẩu</label>
+                    <input type="password" class="form-control" id="add-password" name="password" required>
+                </div>
+                <div class="mb-3">
+                    <label for="add-role" class="form-label">Vai trò</label>
+                    <select class="form-select" id="add-role" name="role">
+                        <option value="editor" selected>Editor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button type="submit" class="btn btn-primary">Lưu</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<% users.forEach(userItem => { %>
+<div class="modal fade" id="editUserModal-<%= userItem.id %>" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Sửa thông tin: <%= userItem.username %></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/admin/users/edit/<%= userItem.id %>" method="POST">
+          <div class="modal-body">
+                <div class="mb-3">
+                    <label for="edit-username-<%= userItem.id %>" class="form-label">Tên đăng nhập</label>
+                    <input type="text" class="form-control" id="edit-username-<%= userItem.id %>" name="username" value="<%= userItem.username %>" required>
+                </div>
+                 <div class="mb-3">
+                    <label for="edit-email-<%= userItem.id %>" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="edit-email-<%= userItem.id %>" name="email" value="<%= userItem.email || '' %>">
+                </div>
+                <div class="mb-3">
+                    <label for="edit-password-<%= userItem.id %>" class="form-label">Mật khẩu mới</label>
+                    <input type="password" class="form-control" id="edit-password-<%= userItem.id %>" name="password" placeholder="Để trống nếu không muốn đổi">
+                </div>
+                <div class="mb-3">
+                    <label for="edit-role-<%= userItem.id %>" class="form-label">Vai trò</label>
+                    <select class="form-select" id="edit-role-<%= userItem.id %>" name="role">
+                        <option value="editor" <%= userItem.role === 'editor' ? 'selected' : '' %>>Editor</option>
+                        <option value="admin" <%= userItem.role === 'admin' ? 'selected' : '' %>>Admin</option>
+                    </select>
+                </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+<% }) %>

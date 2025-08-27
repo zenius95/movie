@@ -60,6 +60,12 @@ module.exports = (sequelize, DataTypes) => {
         chieurap: {
             type: DataTypes.BOOLEAN
         },
+        tmdb: {
+            type: DataTypes.JSON
+        },
+        imdb: {
+            type: DataTypes.JSON
+        },
         modified_at: {
             type: DataTypes.DATE,
             allowNull: false
