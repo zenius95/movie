@@ -10,7 +10,6 @@
                     <h6>Tùy chọn</h6>
                     <div class="row g-2 mb-3">
                         <div class="col"><label for="maxPages" class="form-label">Trang/DM</label><input type="number" class="form-control form-control-sm" id="maxPages" value="2"></div>
-                        <div class="col"><label for="maxMovies" class="form-label">Tổng phim</label><input type="number" class="form-control form-control-sm" id="maxMovies" value="20"></div>
                         <div class="col"><label for="concurrency" class="form-label">Đồng thời</label><input type="number" class="form-control form-control-sm" id="concurrency" value="3"></div>
                     </div>
                     <div class="row g-2 mb-3">
@@ -138,12 +137,16 @@
 
     const settings = {
         get() {
+            const maxPagesValue = parseInt(document.getElementById('maxPages').value, 10);
+            const delayPagesValue = parseInt(document.getElementById('delayPages').value, 10);
+            const delayBatchesValue = parseInt(document.getElementById('delayBatches').value, 10);
+            const concurrencyValue = parseInt(document.getElementById('concurrency').value, 10);
+
             const opts = {
-                maxPages: parseInt(document.getElementById('maxPages').value, 10) || 1,
-                maxMovies: parseInt(document.getElementById('maxMovies').value, 10) || 10,
-                delayPages: parseInt(document.getElementById('delayPages').value, 10) || 500,
-                delayBatches: parseInt(document.getElementById('delayBatches').value, 10) || 1000,
-                concurrency: parseInt(document.getElementById('concurrency').value, 10) || 5,
+                maxPages: isNaN(maxPagesValue) ? 1 : maxPagesValue,
+                delayPages: isNaN(delayPagesValue) ? 500 : delayPagesValue,
+                delayBatches: isNaN(delayBatchesValue) ? 1000 : delayBatchesValue,
+                concurrency: isNaN(concurrencyValue) ? 5 : concurrencyValue,
                 sync_type: elements.syncType.value,
                 sync_value: elements.syncType.value === 'tim-kiem' ? document.getElementById('sync-keyword').value : elements.syncValueSelect.value
             };
@@ -152,11 +155,10 @@
         },
         load() {
             const saved = JSON.parse(localStorage.getItem('syncSettings')) || {};
-            document.getElementById('maxPages').value = saved.maxPages || 2;
-            document.getElementById('maxMovies').value = saved.maxMovies || 20;
-            document.getElementById('delayPages').value = saved.delayPages || 300;
-            document.getElementById('delayBatches').value = saved.delayBatches || 1000;
-            document.getElementById('concurrency').value = saved.concurrency || 3;
+            document.getElementById('maxPages').value = saved.hasOwnProperty('maxPages') ? saved.maxPages : 2;
+            document.getElementById('delayPages').value = saved.hasOwnProperty('delayPages') ? saved.delayPages : 300;
+            document.getElementById('delayBatches').value = saved.hasOwnProperty('delayBatches') ? saved.delayBatches : 1000;
+            document.getElementById('concurrency').value = saved.hasOwnProperty('concurrency') ? saved.concurrency : 3;
             elements.syncType.value = saved.sync_type || 'danh-muc';
         }
     };

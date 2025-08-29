@@ -74,7 +74,7 @@ async function checkStatus(socket) {
 
 async function startSync(socket) {
     const { 
-        sync_type, sync_value, maxPages, maxMovies, delayPages, 
+        sync_type, sync_value, maxPages, delayPages, 
         delayBatches, concurrency
     } = syncState.options;
     
@@ -112,7 +112,7 @@ async function startSync(socket) {
             await sleep(delayPages);
         }
         
-        let moviesToProcess = maxMovies === 0 ? allMoviesFound : allMoviesFound.slice(0, maxMovies);
+        let moviesToProcess = allMoviesFound;
         log(socket, 'info', `PHASE 1 KẾT THÚC: Tìm thấy ${allMoviesFound.length} phim. Sẽ xử lý ${moviesToProcess.length} phim.`);
 
         syncState.progress.total = moviesToProcess.length;
