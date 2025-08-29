@@ -10,6 +10,7 @@ const movieRoutes = require('./routes/movieRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const syncControl = require('./scripts/sync');
+const aiControl = require('./scripts/ai_content'); // Thêm dòng này
 const { fetchApi } = require('./utils/apiFetcher');
 const expressLayouts = require('express-ejs-layouts');
 
@@ -27,7 +28,7 @@ const myStore = new SequelizeStore({
 });
 
 app.use(session({
-  secret: 'a-very-secret-key-that-is-long-and-random', // Thay bằng một chuỗi bí mật của bạn
+  secret: 'a-very-secret-key-that-is-long-and-random',
   store: myStore,
   resave: false,
   proxy: true,
@@ -81,23 +82,31 @@ app.get('/api/nam-phat-hanh', async (req, res) => {
 
 // Socket.io
 io.on('connection', (socket) => {
-  console.log('Một người dùng đã kết nối vào trang sync');
+  console.log('Một người dùng đã kết nối');
   
-  // Gửi ngay trạng thái hiện tại cho client vừa kết nối
+  // Gửi trạng thái Sync
   socket.emit('sync-state', syncControl.getState());
+  socket.on('sync:get-state', () => {
+    socket.emit('sync-state', syncControl.getState());
+  });
 
-  socket.on('sync:start', (options) => {
-    syncControl.start(io, options);
+  socket.on('sync:start', (options) => syncControl.start(io, options));
+  socket.on('sync:pause', () => syncControl.pause(io));
+  socket.on('sync:resume', () => syncControl.resume(io));
+  socket.on('sync:stop', () => syncControl.stop(io));
+
+  // --- THÊM LOGIC CHO AI CONTENT ---
+  // Gửi trạng thái AI Content
+  socket.emit('ai-state', aiControl.getState());
+  socket.on('ai:get-state', () => {
+    socket.emit('ai-state', aiControl.getState());
   });
-  socket.on('sync:pause', () => {
-    syncControl.pause(io);
-  });
-  socket.on('sync:resume', () => {
-    syncControl.resume(io);
-  });
-  socket.on('sync:stop', () => {
-    syncControl.stop(io);
-  });
+
+  socket.on('ai:start', (options) => aiControl.start(io, options));
+  socket.on('ai:pause', () => aiControl.pause(io));
+  socket.on('ai:resume', () => aiControl.resume(io));
+  socket.on('ai:stop', () => aiControl.stop(io));
+  // --- KẾT THÚC ---
 });
 
 initDb().then(async () => {

@@ -35,6 +35,11 @@
                 <i class="bi bi-arrow-repeat me-2"></i> Đồng bộ dữ liệu
             </a>
         </li>
+        <li>
+            <a href="/admin/ai-content" class="nav-link text-white <%= title === 'Nội dung AI' ? 'active' : '' %>">
+                <i class="bi bi-robot me-2"></i> Nội dung AI
+            </a>
+        </li>
         <% if (user && user.role === 'admin') { %>
         <hr>
         <li>

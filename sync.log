@@ -1,0 +1,26 @@
+{"type":"info","message":"====================","timestamp":"23:46:25"}
+{"type":"info","message":"BẮT ĐẦU TIẾN TRÌNH ĐỒNG BỘ MỚI","timestamp":"23:46:25"}
+{"type":"info","message":"====================","timestamp":"23:46:25"}
+{"type":"info","message":"PHASE 1: Tìm kiếm phim từ danh mục: Phim Mới","timestamp":"23:46:27"}
+{"type":"info","message":"  - Đang quét trang: 1","timestamp":"23:46:27"}
+{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 1.","timestamp":"23:46:27"}
+{"type":"info","message":"  - Đang quét trang: 2","timestamp":"23:46:27"}
+{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 2.","timestamp":"23:46:27"}
+{"type":"info","message":"  - Đang quét trang: 3","timestamp":"23:46:28"}
+{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 3.","timestamp":"23:46:28"}
+{"type":"info","message":"  - Đang quét trang: 4","timestamp":"23:46:28"}
+{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 4.","timestamp":"23:46:28"}
+{"type":"info","message":"  - Đang quét trang: 5","timestamp":"23:46:29"}
+{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 5.","timestamp":"23:46:29"}
+{"type":"info","message":"  - Đang quét trang: 6","timestamp":"23:46:30"}
+{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 6.","timestamp":"23:46:30"}
+{"type":"info","message":"  - Đang quét trang: 7","timestamp":"23:46:30"}
+{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 7.","timestamp":"23:46:30"}
+{"type":"info","message":"  - Đang quét trang: 8","timestamp":"23:46:31"}
+{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 8.","timestamp":"23:46:31"}
+{"type":"info","message":"  - Đang quét trang: 9","timestamp":"23:46:31"}
+{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 9.","timestamp":"23:46:32"}
+{"type":"info","message":"  - Đang quét trang: 10","timestamp":"23:46:32"}
+{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 10.","timestamp":"23:46:32"}
+{"type":"info","message":"PHASE 1 KẾT THÚC: Tìm thấy 0 phim.","timestamp":"23:46:32"}
+{"type":"success","message":"✅ ĐỒNG BỘ HÓA HOÀN TẤT!","timestamp":"23:46:32"}

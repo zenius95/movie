@@ -20,6 +20,11 @@ module.exports = (sequelize, DataTypes) => {
         content: {
             type: DataTypes.TEXT
         },
+        // --- THÊM MỚI ---
+        ai_content: {
+            type: DataTypes.TEXT
+        },
+        // --- KẾT THÚC THÊM MỚI ---
         type: {
             type: DataTypes.STRING
         },
@@ -66,18 +71,16 @@ module.exports = (sequelize, DataTypes) => {
         imdb: {
             type: DataTypes.JSON
         },
-        // --- THÊM MỚI ---
         images: {
             type: DataTypes.JSON
         },
-        // --- KẾT THÚC THÊM MỚI ---
         modified_at: {
             type: DataTypes.DATE,
             allowNull: false
         }
     }, {
         tableName: 'movies',
-        timestamps: true, // Tự động quản lý createdAt, updatedAt
+        timestamps: true,
         updatedAt: 'updated_at',
         createdAt: 'created_at'
     });

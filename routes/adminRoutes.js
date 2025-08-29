@@ -51,4 +51,6 @@ router.post('/users/delete/:id', auth.isAdmin, adminController.deleteUser);
 
 router.get('/sync', adminController.showSyncPage);
 
+router.get('/ai-content', adminController.showAiContentPage);
+
 module.exports = router;

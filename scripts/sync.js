@@ -6,20 +6,49 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 
-let syncState = {
-    status: 'idle',
-    logs: [],
-    results: [],
-    progress: { processed: 0, total: 0, success: 0, errors: 0 },
-    options: {}
+const LOG_FILE_PATH = path.join(__dirname, '..', 'sync.log');
+
+// Hàm đọc log từ file khi khởi tạo
+const loadInitialState = () => {
+    let logs = [];
+    if (fs.existsSync(LOG_FILE_PATH)) {
+        const logData = fs.readFileSync(LOG_FILE_PATH, 'utf-8');
+        logs = logData.split('\n').filter(Boolean).map(line => {
+            try {
+                return JSON.parse(line);
+            } catch (e) {
+                return null;
+            }
+        }).filter(Boolean);
+    }
+    return {
+        status: 'idle',
+        logs: logs,
+        results: [],
+        progress: { processed: 0, total: 0, success: 0, errors: 0 },
+        options: {}
+    };
 };
+
+let syncState = loadInitialState();
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const log = (io, type, message) => {
     const logEntry = { type, message, timestamp: new Date().toLocaleTimeString() };
+    
+    // Ghi vào state và file
     syncState.logs.push(logEntry);
-    if (syncState.logs.length > 500) syncState.logs.splice(0, syncState.logs.length - 500);
+    fs.appendFileSync(LOG_FILE_PATH, JSON.stringify(logEntry) + '\n');
+
+    if (syncState.logs.length > 500) {
+        syncState.logs.splice(0, syncState.logs.length - 500);
+        // Cắt bớt file log để không quá lớn
+        const lines = fs.readFileSync(LOG_FILE_PATH, 'utf-8').split('\n').filter(Boolean);
+        const newLines = lines.slice(lines.length - 500);
+        fs.writeFileSync(LOG_FILE_PATH, newLines.join('\n') + '\n');
+    }
+
     console.log(`[${type.toUpperCase()}] ${message}`);
     if(io) io.emit('sync-log', logEntry);
 };
@@ -29,6 +58,10 @@ const control = {
         if (syncState.status === 'running' || syncState.status === 'paused') {
             log(io, 'error', 'Một tiến trình đồng bộ khác đang chạy. Vui lòng đợi.');
             return;
+        }
+        // Xóa file log cũ và reset state khi bắt đầu tiến trình mới
+        if (fs.existsSync(LOG_FILE_PATH)) {
+            fs.writeFileSync(LOG_FILE_PATH, '');
         }
         syncState = { 
             status: 'running', 
@@ -62,7 +95,6 @@ const control = {
             const previousStatus = syncState.status;
             syncState.status = 'stopped';
             log(io, 'error', 'Tiến trình đã được yêu cầu dừng lại.');
-            // Nếu đang chạy, nó sẽ tự dừng ở lần checkStatus tiếp theo. Nếu đang tạm dừng, ta cần kết thúc nó ngay.
             if (previousStatus === 'paused') {
                 io.emit('sync-finished', syncState.status);
             }
@@ -315,9 +347,10 @@ async function processMovieBySlug(slug, movieName, io) {
         
         await t.commit();
         const movieResult = {
-            name: movieData.name, 
-            thumb: localThumbPath, 
-            status: action, 
+            name: movieData.name,
+            thumb: localThumbPath,
+            status: action, // Trạng thái đồng bộ: 'created' hoặc 'updated'
+            movie_status: movieData.status, // Trạng thái của phim: 'ongoing', 'completed'
             year: movieData.year,
             categories: movieData.category.map(c => c.name).join(', '),
             countries: movieData.country.map(c => c.name).join(', ')

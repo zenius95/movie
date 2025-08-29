@@ -402,3 +402,23 @@ exports.showSyncPage = (req, res) => {
         layout: 'layouts/admin'
     });
 };
+
+// ===============================================
+// TRANG ĐỒNG BỘ DỮ LIỆU
+// ===============================================
+exports.showSyncPage = (req, res) => {
+    res.render('pages/admin/sync', {
+        title: 'Đồng bộ dữ liệu',
+        layout: 'layouts/admin'
+    });
+};
+
+// ===============================================
+// TRANG NỘI DUNG AI (MỚI)
+// ===============================================
+exports.showAiContentPage = (req, res) => {
+    res.render('pages/admin/ai_content', {
+        title: 'Nội dung AI',
+        layout: 'layouts/admin'
+    });
+};
