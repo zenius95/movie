@@ -33,8 +33,16 @@ const control = {
             log(socket, 'error', 'Một tiến trình đồng bộ khác đang chạy. Vui lòng đợi.');
             return;
         }
-        syncState = { ...syncState, status: 'running', logs: [], results: [], progress: { processed: 0, total: 0, success: 0, errors: 0 }, options };
-        startSync(socket);
+        // Gán trực tiếp options mới nhận được từ client
+        syncState = { 
+            status: 'running', 
+            logs: [], 
+            results: [], 
+            progress: { processed: 0, total: 0, success: 0, errors: 0 }, 
+            options: options 
+        };
+        // Truyền options trực tiếp vào hàm startSync
+        startSync(socket, options); 
     },
     pause: (socket) => {
         if (syncState.status === 'running') {
@@ -72,14 +80,14 @@ async function checkStatus(socket) {
     }
 }
 
-async function startSync(socket) {
+async function startSync(socket, options) {
     const { 
         sync_type, sync_value, maxPages, delayPages, 
-        delayBatches, concurrency
-    } = syncState.options;
+        delayBatches, concurrency, sync_value_text,
+        category, country, year, sort_field, sort_type
+    } = options;
     
     try {
-        log(socket, 'info', 'Bắt đầu quá trình đồng bộ hóa...');
         await initDb();
         
         let basePath;
@@ -92,29 +100,86 @@ async function startSync(socket) {
             default: throw new Error(`Loại đồng bộ không hợp lệ: ${sync_type}`);
         }
 
-        log(socket, 'info', `PHASE 1: Tìm kiếm phim từ ${sync_type}: ${sync_value}`);
+        const queryParams = new URLSearchParams();
+        if (sort_field) queryParams.append('sort_field', sort_field);
+        if (sort_type) queryParams.append('sort_type', sort_type);
+
+        switch (sync_type) {
+            case 'danh-muc':
+                if (category) queryParams.append('category', category);
+                if (country) queryParams.append('country', country);
+                if (year) queryParams.append('year', year);
+                break;
+            case 'the-loai':
+                if (country) queryParams.append('country', country);
+                if (year) queryParams.append('year', year);
+                break;
+            case 'quoc-gia':
+                if (year) queryParams.append('year', year);
+                break;
+            case 'nam-phat-hanh':
+                if (category) queryParams.append('category', category);
+                if (country) queryParams.append('country', country);
+                break;
+        }
+        const filterQueryString = queryParams.toString();
+        
+        const syncTypeMap = {
+            'danh-muc': 'danh mục', 'the-loai': 'thể loại', 'quoc-gia': 'quốc gia',
+            'nam-phat-hanh': 'năm phát hành', 'tim-kiem': 'từ khóa'
+        };
+        const readableSyncType = syncTypeMap[sync_type] || sync_type;
+        const readableSyncValue = sync_value_text && sync_value_text.trim() !== '' ? sync_value_text : sync_value;
+
+        log(socket, 'info', `Bắt đầu quá trình đồng bộ hóa...`);
+        log(socket, 'info', `PHASE 1: Tìm kiếm phim từ ${readableSyncType}: ${readableSyncValue}`);
+        
         const allMoviesFound = [];
         let currentPage = 1;
         let totalPages = Infinity;
 
         while (currentPage <= totalPages && (maxPages === 0 || currentPage <= maxPages)) {
             await checkStatus(socket);
+            
             let apiUrl = `${basePath}?page=${currentPage}`;
-            if (sync_type === 'tim-kiem') apiUrl += `&keyword=${encodeURIComponent(sync_value)}`;
+            if (sync_type === 'tim-kiem') {
+                apiUrl += `&keyword=${encodeURIComponent(sync_value)}`;
+            }
+            if (filterQueryString) {
+                apiUrl += `&${filterQueryString}`;
+            }
             
             log(socket, 'info', `  - Đang quét trang: ${currentPage}`);
             const data = await fetchApi(apiUrl);
 
-            if (!data || !data.data || !data.data.items) break;
-            totalPages = data.data.params.pagination.totalPages || 1;
-            data.data.items.forEach(movie => allMoviesFound.push({ slug: movie.slug, name: movie.name }));
+            if (!data || !data.data || !data.data.items || data.data.items.length === 0) break;
+            
+            const pagination = data.data.params.pagination;
+            totalPages = Math.ceil(pagination.totalItems / pagination.totalItemsPerPage) || 1;
+
+            const moviesFromApi = data.data.items;
+            const movieIds = moviesFromApi.map(m => m._id);
+            const existingMovies = await Movie.findAll({ where: { _id: movieIds }, attributes: ['_id', 'modified_at'] });
+            const existingMoviesMap = new Map(existingMovies.map(m => [m._id, new Date(m.modified_at).getTime()]));
+            const moviesToAdd = moviesFromApi.filter(apiMovie => {
+                const existingTimestamp = existingMoviesMap.get(apiMovie._id);
+                const apiTimestamp = new Date(apiMovie.modified.time).getTime();
+                return !existingTimestamp || apiTimestamp > existingTimestamp;
+            });
+
+            if (moviesToAdd.length > 0) {
+                 moviesToAdd.forEach(movie => allMoviesFound.push({ slug: movie.slug, name: movie.name }));
+                 log(socket, 'info', `    -> Tìm thấy ${moviesToAdd.length} phim mới/cần cập nhật trên trang ${currentPage}.`);
+            } else {
+                 log(socket, 'info', `    -> Không có phim mới/cập nhật trên trang ${currentPage}.`);
+            }
+           
             currentPage++;
             await sleep(delayPages);
         }
         
         let moviesToProcess = allMoviesFound;
-        log(socket, 'info', `PHASE 1 KẾT THÚC: Tìm thấy ${allMoviesFound.length} phim. Sẽ xử lý ${moviesToProcess.length} phim.`);
-
+        log(socket, 'info', `PHASE 1 KẾT THÚC: Tìm thấy ${moviesToProcess.length} phim. Sẽ xử lý ${moviesToProcess.length} phim.`);
         syncState.progress.total = moviesToProcess.length;
         socket.emit('sync-start', { total: moviesToProcess.length });
         
@@ -123,7 +188,6 @@ async function startSync(socket) {
                 await checkStatus(socket);
                 const batch = moviesToProcess.slice(i, i + concurrency);
                 const results = await Promise.all(batch.map(movie => processMovieBySlug(movie.slug, movie.name, socket)));
-                
                 results.forEach(result => {
                     if (result) {
                         if (result.status !== 'skipped') syncState.progress.success++;
@@ -133,7 +197,6 @@ async function startSync(socket) {
                         syncState.progress.errors++;
                     }
                 });
-
                 syncState.progress.processed += batch.length;
                 socket.emit('sync-progress', syncState.progress);
                 log(socket, 'info', `--- Hoàn thành lô ${Math.floor(i / concurrency) + 1} / ${Math.ceil(moviesToProcess.length / concurrency)} ---`);
@@ -160,7 +223,6 @@ async function processMovieBySlug(slug, movieName, socket) {
     await checkStatus(socket);
     log(socket, 'info', `  -> Đang xử lý phim: "${movieName}"`);
 
-    // Fetch all necessary data first
     const [movieDetail, peopleDetail, imageDetail] = await Promise.all([
         fetchApi(`/api/phim/${slug}`),
         fetchApi(`/api/phim/${slug}/peoples`),
@@ -180,14 +242,7 @@ async function processMovieBySlug(slug, movieName, socket) {
     const tmdbCdnUrl = imageDetail?.data?.image_sizes?.backdrop?.original || 'https://image.tmdb.org/t/p/original';
 
     const apiModifiedTime = new Date(movieData.modified.time);
-    const existingMovie = await Movie.findByPk(movieData._id);
-    const action = existingMovie ? 'updated' : 'created';
 
-    if (existingMovie && new Date(existingMovie.modified_at) >= apiModifiedTime) {
-        log(socket, 'info', `Bỏ qua '${movieData.name}', dữ liệu đã mới nhất.`);
-        return { name: movieData.name, thumb: existingMovie.thumb_url, status: 'skipped', year: movieData.year };
-    }
-    
     const movieImageDir = path.join(__dirname, `../public/images/${movieData.slug}`);
     if (!fs.existsSync(movieImageDir)) fs.mkdirSync(movieImageDir, { recursive: true });
     
@@ -214,8 +269,8 @@ async function processMovieBySlug(slug, movieName, socket) {
             year: movieData.year, view: movieData.view, chieurap: movieData.chieurap,
             modified_at: apiModifiedTime, tmdb: movieData.tmdb, imdb: movieData.imdb
         };
-        await Movie.upsert(moviePayload, { transaction: t });
-        const movieInstance = await Movie.findByPk(movieData._id, { transaction: t });
+        const [movieInstance, created] = await Movie.upsert(moviePayload, { transaction: t, returning: true });
+        const action = created ? 'created' : 'updated';
         
         if (movieData.category) {
             const categoryInstances = await Promise.all(movieData.category.map(cat => Category.findOrCreate({ where: { id: cat.id }, defaults: cat, transaction: t }).then(res => res[0])));
@@ -279,7 +334,15 @@ async function processMovieBySlug(slug, movieName, socket) {
         }
         
         await t.commit();
-        return { name: movieData.name, thumb: localThumbPath, status: action, year: movieData.year };
+        const movieResult = {
+            name: movieData.name, 
+            thumb: localThumbPath, 
+            status: action, 
+            year: movieData.year,
+            categories: movieData.category.map(c => c.name).join(', '),
+            countries: movieData.country.map(c => c.name).join(', ')
+        };
+        return movieResult;
     } catch (error) {
         await t.rollback();
         log(socket, 'error', `Giao dịch thất bại cho phim "${movieName}". Đã rollback. Lỗi: ${error.message}`);
@@ -297,7 +360,7 @@ async function downloadImage(url, destPath, socket, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
             await checkStatus(socket);
-            const response = await fetch(url, { timeout: 15000 }); // Thêm timeout 15s
+            const response = await fetch(url, { timeout: 15000 });
             if (!response.ok) throw new Error(`Server response: ${response.statusText}`);
             
             const fileStream = fs.createWriteStream(destPath);
@@ -306,13 +369,13 @@ async function downloadImage(url, destPath, socket, retries = 3) {
                 response.body.on("error", reject);
                 fileStream.on("finish", resolve);
             });
-            return; // Thành công, thoát khỏi vòng lặp
+            return;
         } catch (error) {
             log(socket, 'warning', `Lần ${i + 1}/${retries}: Lỗi khi tải ảnh từ ${url}. Thử lại sau 1 giây...`);
-            if (i === retries - 1) { // Nếu đây là lần thử cuối cùng
+            if (i === retries - 1) {
                 log(socket, 'error', `Không thể tải ảnh từ ${url} sau ${retries} lần thử. Lỗi: ${error.message}`);
             } else {
-                await sleep(1000); // Chờ 1 giây trước khi thử lại
+                await sleep(1000);
             }
         }
     }

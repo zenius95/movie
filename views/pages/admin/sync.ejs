@@ -9,7 +9,7 @@
                 <div id="settings-form">
                     <h6>Tùy chọn</h6>
                     <div class="row g-2 mb-3">
-                        <div class="col"><label for="maxPages" class="form-label">Trang/DM</label><input type="number" class="form-control form-control-sm" id="maxPages" value="2"></div>
+                        <div class="col"><label for="maxPages" class="form-label">Giới hạn trang (0=all)</label><input type="number" class="form-control form-control-sm" id="maxPages" value="0"></div>
                         <div class="col"><label for="concurrency" class="form-label">Đồng thời</label><input type="number" class="form-control form-control-sm" id="concurrency" value="3"></div>
                     </div>
                     <div class="row g-2 mb-3">
@@ -28,6 +28,41 @@
                         </select>
                         <select class="form-select form-select-sm" id="sync-value"></select>
                         <input type="text" class="form-control form-control-sm d-none" id="sync-keyword" placeholder="Nhập từ khóa...">
+                    </div>
+
+                    <h6>Lọc & Sắp xếp</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-12" id="category-filter-container">
+                            <label for="category-filter" class="form-label">Lọc theo Thể loại</label>
+                            <select id="category-filter" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-6" id="country-filter-container">
+                            <label for="country-filter" class="form-label">Lọc theo Quốc gia</label>
+                            <select id="country-filter" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-6" id="year-filter-container">
+                            <label for="year-filter" class="form-label">Lọc theo Năm</label>
+                            <select id="year-filter" class="form-select form-select-sm"></select>
+                        </div>
+                    </div>
+                     <div class="row g-2 mb-3" id="sort-container">
+                        <div class="col">
+                            <label for="sort_field" class="form-label">Sắp xếp theo</label>
+                            <select id="sort_field" class="form-select form-select-sm">
+                                <option value="">Mặc định</option>
+                                <option value="modified.time">Thời gian sửa</option>
+                                <option value="year">Năm</option>
+                                <option value="_id">ID</option>
+                            </select>
+                         </div>
+                        <div class="col">
+                            <label for="sort_type" class="form-label">Thứ tự</label>
+                            <select id="sort_type" class="form-select form-select-sm">
+                                <option value="">Mặc định</option>
+                                <option value="desc">Giảm dần</option>
+                                <option value="asc">Tăng dần</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="mt-auto">
@@ -68,8 +103,6 @@
                                 <th>Ảnh</th>
                                 <th>Tên phim</th>
                                 <th>Năm</th>
-                                <th>Thể loại</th>
-                                <th>Quốc gia</th>
                                 <th>Trạng thái</th>
                             </tr>
                         </thead>
@@ -87,7 +120,15 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    const SOURCE_CATEGORIES = ['phim-moi', 'phim-bo', 'phim-le', 'tv-shows', 'phim-bo-dang-chieu', 'phim-bo-hoan-thanh', 'phim-sap-chieu'];
+    const SOURCE_CATEGORIES = [
+        { value: 'phim-moi', text: 'Phim Mới' },
+        { value: 'phim-bo', text: 'Phim Bộ' },
+        { value: 'phim-le', text: 'Phim Lẻ' },
+        { value: 'tv-shows', text: 'TV Shows' },
+        { value: 'phim-bo-dang-chieu', text: 'Phim Bộ Đang Chiếu' },
+        { value: 'phim-bo-hoan-thanh', text: 'Phim Bộ Hoàn Thành' },
+        { value: 'phim-sap-chieu', text: 'Phim Sắp Chiếu' }
+    ];
     const socket = io();
     let isPaused = false;
     let totalMoviesToProcess = 0;
@@ -105,9 +146,19 @@
         form: document.getElementById('settings-form'),
         inputs: document.querySelectorAll('#settings-form input, #settings-form select'),
         syncType: document.getElementById('sync-type'),
-        syncValueSelect: document.getElementById('sync-value')
+        syncValueSelect: document.getElementById('sync-value'),
+        syncKeywordInput: document.getElementById('sync-keyword'),
+        categoryFilter: document.getElementById('category-filter'),
+        countryFilter: document.getElementById('country-filter'),
+        yearFilter: document.getElementById('year-filter'),
+        sortField: document.getElementById('sort_field'),
+        sortType: document.getElementById('sort_type'),
+        categoryFilterContainer: document.getElementById('category-filter-container'),
+        countryFilterContainer: document.getElementById('country-filter-container'),
+        yearFilterContainer: document.getElementById('year-filter-container'),
+        sortContainer: document.getElementById('sort-container')
     };
-    
+
     const ui = {
         setSyncing(isSyncing) {
             elements.syncButton.disabled = isSyncing;
@@ -137,25 +188,29 @@
 
     const settings = {
         get() {
-            const maxPagesValue = parseInt(document.getElementById('maxPages').value, 10);
-            const delayPagesValue = parseInt(document.getElementById('delayPages').value, 10);
-            const delayBatchesValue = parseInt(document.getElementById('delayBatches').value, 10);
-            const concurrencyValue = parseInt(document.getElementById('concurrency').value, 10);
+            const selectedOption = elements.syncValueSelect.options[elements.syncValueSelect.selectedIndex];
+            const syncValueText = selectedOption ? selectedOption.text : '';
 
             const opts = {
-                maxPages: isNaN(maxPagesValue) ? 1 : maxPagesValue,
-                delayPages: isNaN(delayPagesValue) ? 500 : delayPagesValue,
-                delayBatches: isNaN(delayBatchesValue) ? 1000 : delayBatchesValue,
-                concurrency: isNaN(concurrencyValue) ? 5 : concurrencyValue,
+                maxPages: parseInt(document.getElementById('maxPages').value, 10) || 0,
+                delayPages: parseInt(document.getElementById('delayPages').value, 10) || 500,
+                delayBatches: parseInt(document.getElementById('delayBatches').value, 10) || 1000,
+                concurrency: parseInt(document.getElementById('concurrency').value, 10) || 5,
                 sync_type: elements.syncType.value,
-                sync_value: elements.syncType.value === 'tim-kiem' ? document.getElementById('sync-keyword').value : elements.syncValueSelect.value
+                sync_value: elements.syncType.value === 'tim-kiem' ? elements.syncKeywordInput.value : elements.syncValueSelect.value,
+                sync_value_text: elements.syncType.value === 'tim-kiem' ? elements.syncKeywordInput.value : syncValueText,
+                category: elements.categoryFilter.value,
+                country: elements.countryFilter.value,
+                year: elements.yearFilter.value,
+                sort_field: elements.sortField.value,
+                sort_type: elements.sortType.value,
             };
             localStorage.setItem('syncSettings', JSON.stringify(opts));
             return opts;
         },
         load() {
             const saved = JSON.parse(localStorage.getItem('syncSettings')) || {};
-            document.getElementById('maxPages').value = saved.hasOwnProperty('maxPages') ? saved.maxPages : 2;
+            document.getElementById('maxPages').value = saved.hasOwnProperty('maxPages') ? saved.maxPages : 0;
             document.getElementById('delayPages').value = saved.hasOwnProperty('delayPages') ? saved.delayPages : 300;
             document.getElementById('delayBatches').value = saved.hasOwnProperty('delayBatches') ? saved.delayBatches : 1000;
             document.getElementById('concurrency').value = saved.hasOwnProperty('concurrency') ? saved.concurrency : 3;
@@ -163,11 +218,11 @@
         }
     };
 
-    async function populateSelect(selectElement, url, valueKey, nameKey) {
+    async function populateSelect(selectElement, url, valueKey, nameKey, isSourceData = false, addAllOption = true) {
         try {
             const response = await fetch(url);
             const data = await response.json();
-            selectElement.innerHTML = '';
+            selectElement.innerHTML = addAllOption ? '<option value="">Tất cả</option>' : '';
             data.data.items.forEach(item => {
                 selectElement.innerHTML += `<option value="${item[valueKey]}">${item[nameKey]}</option>`;
             });
@@ -179,22 +234,49 @@
     function updateSyncValueOptions() {
         const type = elements.syncType.value;
         const valueSelect = elements.syncValueSelect;
-        const keywordInput = document.getElementById('sync-keyword');
+        const keywordInput = elements.syncKeywordInput;
+
         valueSelect.classList.toggle('d-none', type === 'tim-kiem');
         keywordInput.classList.toggle('d-none', type !== 'tim-kiem');
 
-        if (type === 'danh-muc') {
-            valueSelect.innerHTML = SOURCE_CATEGORIES.map(cat => `<option value="${cat}">${cat.replace(/-/g, ' ')}</option>`).join('');
-        } else if (type === 'the-loai') {
-            populateSelect(valueSelect, '/api/the-loai', 'slug', 'name');
-        } else if (type === 'quoc-gia') {
-            populateSelect(valueSelect, '/api/quoc-gia', 'slug', 'name');
-        } else if (type === 'nam-phat-hanh') {
-            populateSelect(valueSelect, '/api/nam-phat-hanh', 'year', 'year');
+        elements.sortContainer.style.display = 'flex';
+        elements.categoryFilterContainer.style.display = 'block';
+        elements.countryFilterContainer.style.display = 'block';
+        elements.yearFilterContainer.style.display = 'block';
+
+        switch(type) {
+            case 'danh-muc':
+                valueSelect.innerHTML = SOURCE_CATEGORIES.map(cat => `<option value="${cat.value}">${cat.text}</option>`).join('');
+                break;
+            case 'the-loai':
+                populateSelect(valueSelect, '/api/the-loai', 'slug', 'name', true, false);
+                elements.categoryFilterContainer.style.display = 'none';
+                break;
+            case 'quoc-gia':
+                populateSelect(valueSelect, '/api/quoc-gia', 'slug', 'name', true, false);
+                elements.countryFilterContainer.style.display = 'none';
+                elements.categoryFilterContainer.style.display = 'none';
+                break;
+            case 'nam-phat-hanh':
+                populateSelect(valueSelect, '/api/nam-phat-hanh', 'year', 'year', true, false);
+                elements.yearFilterContainer.style.display = 'none';
+                break;
+            case 'tim-kiem':
+                elements.sortContainer.style.display = 'none';
+                elements.categoryFilterContainer.style.display = 'none';
+                elements.countryFilterContainer.style.display = 'none';
+                elements.yearFilterContainer.style.display = 'none';
+                break;
         }
     }
+    
+    document.addEventListener('DOMContentLoaded', async () => {
+        await Promise.all([
+            populateSelect(elements.categoryFilter, '/api/the-loai', 'slug', 'name'),
+            populateSelect(elements.countryFilter, '/api/quoc-gia', 'slug', 'name'),
+            populateSelect(elements.yearFilter, '/api/nam-phat-hanh', 'year', 'year')
+        ]);
 
-    document.addEventListener('DOMContentLoaded', () => {
         settings.load();
         updateSyncValueOptions();
         
@@ -219,13 +301,59 @@
 
         elements.stopButton.addEventListener('click', () => socket.emit('sync:stop'));
 
+        socket.on('sync-state', (state) => {
+            if (state.status === 'running' || state.status === 'paused') {
+                ui.setSyncing(true);
+                ui.setPaused(state.status === 'paused');
+                if (state.logs) {
+                    elements.logContainer.innerHTML = '';
+                    state.logs.forEach(log => {
+                        const logEntry = document.createElement('div');
+                        const typeToClass = { 'info': 'text-info-emphasis', 'success': 'text-success', 'error': 'text-danger', 'warning': 'text-warning' };
+                        logEntry.className = typeToClass[log.type] || 'text-muted';
+                        logEntry.textContent = `[${log.timestamp}] ${log.message}`;
+                        elements.logContainer.appendChild(logEntry);
+                    });
+                    elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
+                }
+                if (state.results) {
+                    elements.resultsBody.innerHTML = '';
+                    state.results.forEach(movie => {
+                         if (movie.status === 'created' || movie.status === 'updated') {
+                            const newRow = elements.resultsBody.insertRow(0);
+                            const statusClass = movie.status === 'created' ? 'text-bg-success' : 'text-bg-warning';
+                            newRow.innerHTML = `
+                                <td><img src="${movie.thumb}" alt="thumb" style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px;"></td>
+                                <td>${movie.name}</td>
+                                <td><span class="badge text-bg-secondary">${movie.year || ''}</span></td>
+                                <td><span class="badge ${statusClass}">${movie.status}</span></td>
+                            `;
+                        }
+                    });
+                }
+                if (state.progress) {
+                    totalMoviesToProcess = state.progress.total;
+                    elements.statFound.textContent = totalMoviesToProcess;
+                    const percentage = totalMoviesToProcess === 0 ? 0 : Math.round((state.progress.processed / totalMoviesToProcess) * 100);
+                    elements.progressBar.style.width = `${percentage}%`;
+                    elements.progressBar.textContent = `${percentage}%`;
+                    elements.statSuccess.textContent = state.progress.success;
+                    elements.statErrors.textContent = state.progress.errors;
+                }
+            }
+        });
+        
         socket.on('sync-log', (data) => {
+            const logContainer = elements.logContainer;
+            const shouldScroll = logContainer.scrollTop + logContainer.clientHeight >= logContainer.scrollHeight - 10;
             const logEntry = document.createElement('div');
             const typeToClass = { 'info': 'text-info-emphasis', 'success': 'text-success', 'error': 'text-danger', 'warning': 'text-warning' };
             logEntry.className = typeToClass[data.type] || 'text-muted';
             logEntry.textContent = `[${data.timestamp}] ${data.message}`;
-            elements.logContainer.appendChild(logEntry);
-            elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
+            logContainer.appendChild(logEntry);
+            if (shouldScroll) {
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
         });
 
         socket.on('sync-start', (data) => {
@@ -245,13 +373,10 @@
             if (movie.status === 'created' || movie.status === 'updated') {
                 const newRow = elements.resultsBody.insertRow(0);
                 const statusClass = movie.status === 'created' ? 'text-bg-success' : 'text-bg-warning';
-                
                 newRow.innerHTML = `
                     <td><img src="${movie.thumb}" alt="thumb" style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px;"></td>
                     <td>${movie.name}</td>
                     <td><span class="badge text-bg-secondary">${movie.year || ''}</span></td>
-                    <td><small>${movie.categories || ''}</small></td>
-                    <td><small>${movie.countries || ''}</small></td>
                     <td><span class="badge ${statusClass}">${movie.status}</span></td>
                 `;
             }
