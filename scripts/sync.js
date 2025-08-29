@@ -97,7 +97,7 @@ async function startSync(socket) {
         let currentPage = 1;
         let totalPages = Infinity;
 
-        while (currentPage <= totalPages && currentPage <= maxPages) {
+        while (currentPage <= totalPages && (maxPages === 0 || currentPage <= maxPages)) {
             await checkStatus(socket);
             let apiUrl = `${basePath}?page=${currentPage}`;
             if (sync_type === 'tim-kiem') apiUrl += `&keyword=${encodeURIComponent(sync_value)}`;
@@ -112,7 +112,7 @@ async function startSync(socket) {
             await sleep(delayPages);
         }
         
-        let moviesToProcess = allMoviesFound.slice(0, maxMovies);
+        let moviesToProcess = maxMovies === 0 ? allMoviesFound : allMoviesFound.slice(0, maxMovies);
         log(socket, 'info', `PHASE 1 KẾT THÚC: Tìm thấy ${allMoviesFound.length} phim. Sẽ xử lý ${moviesToProcess.length} phim.`);
 
         syncState.progress.total = moviesToProcess.length;
