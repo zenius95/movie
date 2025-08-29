@@ -1,5 +1,7 @@
-const { Movie, Category, Country, User, Year, Episode, Image, sequelize } = require('../models'); // Thêm Image vào import
+const { Movie, Category, Country, User, Year, Episode, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const fs = require('fs');
+const path = require('path');
 
 // Trang Dashboard (giữ nguyên)
 exports.showDashboard = async (req, res) => {
@@ -58,7 +60,6 @@ exports.showEditMovieForm = async (req, res) => {
                 { model: Category }, 
                 { model: Country }, 
                 { model: Episode, order: [['name', 'ASC']] },
-                { model: Image } // <-- THÊM DÒNG NÀY ĐỂ LẤY DỮ LIỆU ẢNH
             ]
         });
         if (!movie) return res.status(404).send('Không tìm thấy phim');
@@ -117,6 +118,47 @@ exports.deleteMovie = async (req, res) => {
     }
 };
 
+// Upload ảnh (chỉ còn dùng cho poster và thumbnail)
+exports.uploadImage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { imageType } = req.body; // 'poster' hoặc 'thumb'
+        const movie = await Movie.findByPk(id);
+
+        if (!req.file) {
+            return res.status(400).send('Không có tệp nào được tải lên.');
+        }
+
+        const tempPath = req.file.path;
+        const movieImageDir = path.join(__dirname, `../public/images/${movie.slug}`);
+        if (!fs.existsSync(movieImageDir)) {
+            fs.mkdirSync(movieImageDir, { recursive: true });
+        }
+
+        const fileName = `${imageType}-${Date.now()}${path.extname(req.file.originalname)}`;
+        const destPath = path.join(movieImageDir, fileName);
+        const localPath = `/images/${movie.slug}/${fileName}`;
+
+        fs.renameSync(tempPath, destPath);
+
+        if (imageType === 'poster') {
+            if (movie.poster_url && fs.existsSync(path.join(__dirname, `../public${movie.poster_url}`))) {
+                fs.unlinkSync(path.join(__dirname, `../public${movie.poster_url}`));
+            }
+            await movie.update({ poster_url: localPath });
+        } else if (imageType === 'thumb') {
+            if (movie.thumb_url && fs.existsSync(path.join(__dirname, `../public${movie.thumb_url}`))) {
+                fs.unlinkSync(path.join(__dirname, `../public${movie.thumb_url}`));
+            }
+            await movie.update({ thumb_url: localPath });
+        }
+
+        res.redirect(`/admin/movies/edit/${id}`);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Lỗi khi tải ảnh lên.');
+    }
+};
 
 // ===============================================
 // QUẢN LÝ TẬP PHIM
@@ -348,80 +390,6 @@ exports.deleteUser = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).send('Lỗi khi xóa người dùng.');
-    }
-};
-
-// ===============================================
-// QUẢN LÝ HÌNH ẢNH (MỚI)
-// ===============================================
-
-exports.uploadImage = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { imageType } = req.body; // 'poster', 'thumb', hoặc 'backdrop'
-        const movie = await Movie.findByPk(id);
-
-        if (!req.file) {
-            return res.status(400).send('Không có tệp nào được tải lên.');
-        }
-
-        const tempPath = req.file.path;
-        const movieImageDir = path.join(__dirname, `../public/images/${movie.slug}`);
-        if (!fs.existsSync(movieImageDir)) {
-            fs.mkdirSync(movieImageDir, { recursive: true });
-        }
-
-        // Tạo tên file mới để tránh trùng lặp
-        const fileName = `${imageType}-${Date.now()}${path.extname(req.file.originalname)}`;
-        const destPath = path.join(movieImageDir, fileName);
-        const localPath = `/images/${movie.slug}/${fileName}`;
-
-        // Di chuyển file từ thư mục tạm vào thư mục public
-        fs.renameSync(tempPath, destPath);
-
-        if (imageType === 'poster') {
-            // Xóa file cũ nếu có
-            if (movie.poster_url && fs.existsSync(path.join(__dirname, `../public${movie.poster_url}`))) {
-                fs.unlinkSync(path.join(__dirname, `../public${movie.poster_url}`));
-            }
-            await movie.update({ poster_url: localPath });
-        } else if (imageType === 'thumb') {
-            // Xóa file cũ nếu có
-            if (movie.thumb_url && fs.existsSync(path.join(__dirname, `../public${movie.thumb_url}`))) {
-                fs.unlinkSync(path.join(__dirname, `../public${movie.thumb_url}`));
-            }
-            await movie.update({ thumb_url: localPath });
-        } else if (imageType === 'backdrop') {
-            await Image.create({
-                movie_id: movie._id,
-                type: 'backdrop',
-                file_path: localPath
-            });
-        }
-
-        res.redirect(`/admin/movies/edit/${id}`);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Lỗi khi tải ảnh lên.');
-    }
-};
-
-exports.deleteImage = async (req, res) => {
-    try {
-        const image = await Image.findByPk(req.params.id);
-        if (image) {
-            // Xóa file vật lý
-            const filePath = path.join(__dirname, `../public${image.file_path}`);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            }
-            // Xóa record trong DB
-            await image.destroy();
-        }
-        res.redirect(`/admin/movies/edit/${image.movie_id}`);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Lỗi khi xóa ảnh.');
     }
 };
 

@@ -16,7 +16,6 @@
                         <div class="col"><label for="delayPages" class="form-label">Delay Trang</label><input type="number" class="form-control form-control-sm" id="delayPages" value="300"></div>
                         <div class="col"><label for="delayBatches" class="form-label">Delay Lô</label><input type="number" class="form-control form-control-sm" id="delayBatches" value="1000"></div>
                     </div>
-                    
                     <h6>Nguồn Đồng bộ</h6>
                     <div class="input-group mb-3">
                         <select class="form-select form-select-sm" id="sync-type" style="flex-grow: 0; width: auto;">
@@ -29,7 +28,6 @@
                         <select class="form-select form-select-sm" id="sync-value"></select>
                         <input type="text" class="form-control form-control-sm d-none" id="sync-keyword" placeholder="Nhập từ khóa...">
                     </div>
-
                     <h6>Lọc & Sắp xếp</h6>
                     <div class="row g-2 mb-3">
                         <div class="col-12" id="category-filter-container">
@@ -45,7 +43,7 @@
                             <select id="year-filter" class="form-select form-select-sm"></select>
                         </div>
                     </div>
-                     <div class="row g-2 mb-3" id="sort-container">
+                    <div class="row g-2 mb-3" id="sort-container">
                         <div class="col">
                             <label for="sort_field" class="form-label">Sắp xếp theo</label>
                             <select id="sort_field" class="form-select form-select-sm">
@@ -54,7 +52,7 @@
                                 <option value="year">Năm</option>
                                 <option value="_id">ID</option>
                             </select>
-                         </div>
+                        </div>
                         <div class="col">
                             <label for="sort_type" class="form-label">Thứ tự</label>
                             <select id="sort_type" class="form-select form-select-sm">
@@ -77,13 +75,12 @@
             </div>
         </div>
     </div>
-
     <div class="col-lg-8 col-xl-9">
         <div class="card shadow-sm mb-4">
             <div class="card-header"><h5 class="mb-0">Tiến trình</h5></div>
             <div class="card-body">
                 <div class="progress" role="progressbar" style="height: 25px;">
-                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%">0%</div>
+                    <div id="progress-bar" class="progress-bar" style="width: 0%">0%</div>
                 </div>
                 <div class="row text-center mt-3">
                     <div class="col"><div class="fs-4 fw-bold" id="stat-found">0</div><div class="text-secondary small">Mục tiêu</div></div>
@@ -92,11 +89,10 @@
                 </div>
             </div>
         </div>
-
         <div class="card shadow-sm">
-            <div class="card-header"><h5 class="mb-0">Kết quả</h5></div>
+            <div class="card-header"><h5 class="mb-0">Kết quả (Lần chạy gần nhất)</h5></div>
             <div class="card-body p-0">
-                 <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
                     <table class="table table-hover table-sm align-middle mb-0">
                         <thead>
                             <tr>
@@ -111,282 +107,236 @@
                 </div>
             </div>
         </div>
-         <div class="card shadow-sm mt-4">
+        <div class="card shadow-sm mt-4">
             <div class="card-header"><h5 class="mb-0">Log chi tiết</h5></div>
-            <div id="log-container" class="card-body" style="max-height: 250px; overflow-y: auto;"></div>
+            <div id="log-container" class="card-body" style="max-height: 250px; overflow-y: auto; font-size: 0.8rem; line-height: 1.5;"></div>
         </div>
     </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    const SOURCE_CATEGORIES = [
-        { value: 'phim-moi', text: 'Phim Mới' },
-        { value: 'phim-bo', text: 'Phim Bộ' },
-        { value: 'phim-le', text: 'Phim Lẻ' },
-        { value: 'tv-shows', text: 'TV Shows' },
-        { value: 'phim-bo-dang-chieu', text: 'Phim Bộ Đang Chiếu' },
-        { value: 'phim-bo-hoan-thanh', text: 'Phim Bộ Hoàn Thành' },
-        { value: 'phim-sap-chieu', text: 'Phim Sắp Chiếu' }
-    ];
-    const socket = io();
-    let isPaused = false;
-    let totalMoviesToProcess = 0;
-    const elements = {
-        syncButton: document.getElementById('syncButton'),
-        buttonText: document.getElementById('button-text'),
-        pauseButton: document.getElementById('pauseButton'),
-        stopButton: document.getElementById('stopButton'),
-        logContainer: document.getElementById('log-container'),
-        resultsBody: document.getElementById('results-body'),
-        progressBar: document.getElementById('progress-bar'),
-        statFound: document.getElementById('stat-found'),
-        statSuccess: document.getElementById('stat-success'),
-        statErrors: document.getElementById('stat-errors'),
-        form: document.getElementById('settings-form'),
-        inputs: document.querySelectorAll('#settings-form input, #settings-form select'),
-        syncType: document.getElementById('sync-type'),
-        syncValueSelect: document.getElementById('sync-value'),
-        syncKeywordInput: document.getElementById('sync-keyword'),
-        categoryFilter: document.getElementById('category-filter'),
-        countryFilter: document.getElementById('country-filter'),
-        yearFilter: document.getElementById('year-filter'),
-        sortField: document.getElementById('sort_field'),
-        sortType: document.getElementById('sort_type'),
-        categoryFilterContainer: document.getElementById('category-filter-container'),
-        countryFilterContainer: document.getElementById('country-filter-container'),
-        yearFilterContainer: document.getElementById('year-filter-container'),
-        sortContainer: document.getElementById('sort-container')
-    };
+    document.addEventListener('DOMContentLoaded', () => {
+        const SOURCE_CATEGORIES = [
+            { value: 'phim-moi', text: 'Phim Mới' }, { value: 'phim-bo', text: 'Phim Bộ' },
+            { value: 'phim-le', text: 'Phim Lẻ' }, { value: 'tv-shows', text: 'TV Shows' },
+            { value: 'phim-bo-dang-chieu', text: 'Phim Bộ Đang Chiếu' },
+            { value: 'phim-bo-hoan-thanh', text: 'Phim Bộ Hoàn Thành' },
+            { value: 'phim-sap-chieu', text: 'Phim Sắp Chiếu' }
+        ];
 
-    const ui = {
-        setSyncing(isSyncing) {
-            elements.syncButton.disabled = isSyncing;
-            elements.pauseButton.disabled = !isSyncing;
-            elements.stopButton.disabled = !isSyncing;
-            elements.buttonText.textContent = isSyncing ? 'Đang chạy...' : 'Bắt đầu';
-            elements.inputs.forEach(input => input.disabled = isSyncing);
-            if (!isSyncing) this.setPaused(false);
-        },
-        setPaused(pausedState) {
-            isPaused = pausedState;
-            elements.pauseButton.innerHTML = isPaused ? '<i class="bi bi-play-fill me-1"></i>Tiếp tục' : '<i class="bi bi-pause-fill me-1"></i>Tạm dừng';
-            elements.pauseButton.classList.toggle('btn-warning', !isPaused);
-            elements.pauseButton.classList.toggle('btn-info', isPaused);
-        },
-        reset() {
-            this.setSyncing(false);
-            elements.logContainer.innerHTML = '';
-            elements.resultsBody.innerHTML = '';
-            elements.progressBar.style.width = '0%';
-            elements.progressBar.textContent = '0%';
-            elements.progressBar.classList.remove('bg-success', 'bg-danger');
-            elements.progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
-            ['statFound', 'statSuccess', 'statErrors'].forEach(key => elements[key].textContent = '0');
+        const socket = io();
+        let totalMoviesToProcess = 0;
+
+        const elements = {
+            syncButton: document.getElementById('syncButton'),
+            buttonText: document.getElementById('button-text'),
+            pauseButton: document.getElementById('pauseButton'),
+            stopButton: document.getElementById('stopButton'),
+            logContainer: document.getElementById('log-container'),
+            resultsBody: document.getElementById('results-body'),
+            progressBar: document.getElementById('progress-bar'),
+            statFound: document.getElementById('stat-found'),
+            statSuccess: document.getElementById('stat-success'),
+            statErrors: document.getElementById('stat-errors'),
+            inputs: document.querySelectorAll('#settings-form input, #settings-form select'),
+            syncType: document.getElementById('sync-type'),
+            syncValueSelect: document.getElementById('sync-value'),
+            syncKeywordInput: document.getElementById('sync-keyword'),
+            categoryFilter: document.getElementById('category-filter'),
+            countryFilter: document.getElementById('country-filter'),
+            yearFilter: document.getElementById('year-filter'),
+            sortField: document.getElementById('sort_field'),
+            sortType: document.getElementById('sort_type'),
+            categoryFilterContainer: document.getElementById('category-filter-container'),
+            countryFilterContainer: document.getElementById('country-filter-container'),
+            yearFilterContainer: document.getElementById('year-filter-container'),
+            sortContainer: document.getElementById('sort-container')
+        };
+
+        const ui = {
+            renderState(state) {
+                const isRunning = state.status === 'running' || state.status === 'paused';
+                const isPaused = state.status === 'paused';
+
+                // Cập nhật các nút
+                elements.syncButton.disabled = isRunning;
+                elements.buttonText.textContent = isRunning ? 'Đang chạy...' : 'Bắt đầu';
+                elements.pauseButton.disabled = !isRunning;
+                elements.stopButton.disabled = !isRunning;
+                elements.inputs.forEach(input => input.disabled = isRunning);
+                
+                elements.pauseButton.innerHTML = isPaused ? '<i class="bi bi-play-fill me-1"></i>Tiếp tục' : '<i class="bi bi-pause-fill me-1"></i>Tạm dừng';
+                elements.pauseButton.classList.toggle('btn-warning', !isPaused);
+                elements.pauseButton.classList.toggle('btn-info', isPaused);
+                
+                // Cập nhật progress bar và stats
+                ui.updateProgressBar(state.progress, state.status);
+                
+                // Cập nhật log
+                elements.logContainer.innerHTML = '';
+                state.logs.forEach(log => ui.logToUI(log, false));
+                elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
+                
+                // Cập nhật kết quả
+                elements.resultsBody.innerHTML = '';
+                state.results.forEach(ui.addResultRow);
+            },
+            updateProgressBar(progress, status) {
+                totalMoviesToProcess = progress.total || totalMoviesToProcess || 0;
+                const percentage = totalMoviesToProcess === 0 ? 0 : Math.round((progress.processed / totalMoviesToProcess) * 100);
+                elements.progressBar.style.width = `${percentage}%`;
+                elements.progressBar.textContent = `${percentage}%`;
+                elements.statFound.textContent = totalMoviesToProcess;
+                elements.statSuccess.textContent = progress.success;
+                elements.statErrors.textContent = progress.errors;
+
+                elements.progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped', 'bg-success', 'bg-danger');
+                if (status === 'running' || status === 'paused') {
+                    elements.progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+                } else if (status === 'stopped') {
+                    elements.progressBar.classList.add('bg-danger');
+                } else if (status === 'idle' && progress.processed > 0 && progress.processed === totalMoviesToProcess) {
+                     elements.progressBar.classList.add('bg-success');
+                }
+            },
+            logToUI(data, shouldScroll = true) {
+                const logContainer = elements.logContainer;
+                const isAtBottom = logContainer.scrollTop + logContainer.clientHeight >= logContainer.scrollHeight - 20;
+                const logEntry = document.createElement('div');
+                const typeToClass = { 'info': 'text-info-emphasis', 'success': 'text-success', 'error': 'text-danger', 'warning': 'text-warning' };
+                logEntry.className = typeToClass[data.type] || 'text-muted';
+                logEntry.innerHTML = `[${data.timestamp}] ${data.message}`;
+                logContainer.appendChild(logEntry);
+                if (shouldScroll && isAtBottom) {
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                }
+            },
+            addResultRow(movie) {
+                if (movie.status === 'created' || movie.status === 'updated') {
+                    const newRow = elements.resultsBody.insertRow(0);
+                    const statusClass = movie.status === 'created' ? 'text-bg-success' : 'text-bg-warning';
+                    newRow.innerHTML = `
+                        <td><img src="${movie.thumb}" alt="thumb" style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px;"></td>
+                        <td>${movie.name}</td>
+                        <td><span class="badge text-bg-secondary">${movie.year || ''}</span></td>
+                        <td><span class="badge ${statusClass}">${movie.status}</span></td>
+                    `;
+                }
+            }
+        };
+
+        const settings = {
+            get() {
+                const selectedOption = elements.syncValueSelect.options[elements.syncValueSelect.selectedIndex];
+                const syncValueText = selectedOption ? selectedOption.text : '';
+                const opts = {
+                    maxPages: parseInt(document.getElementById('maxPages').value, 10) || 0,
+                    delayPages: parseInt(document.getElementById('delayPages').value, 10) || 300,
+                    delayBatches: parseInt(document.getElementById('delayBatches').value, 10) || 1000,
+                    concurrency: parseInt(document.getElementById('concurrency').value, 10) || 3,
+                    sync_type: elements.syncType.value,
+                    sync_value: elements.syncType.value === 'tim-kiem' ? elements.syncKeywordInput.value : elements.syncValueSelect.value,
+                    sync_value_text: elements.syncType.value === 'tim-kiem' ? elements.syncKeywordInput.value : syncValueText,
+                    category: elements.categoryFilter.value,
+                    country: elements.countryFilter.value,
+                    year: elements.yearFilter.value,
+                    sort_field: elements.sortField.value,
+                    sort_type: elements.sortType.value,
+                };
+                localStorage.setItem('syncSettings', JSON.stringify(opts));
+                return opts;
+            },
+            load() {
+                const saved = JSON.parse(localStorage.getItem('syncSettings')) || {};
+                document.getElementById('maxPages').value = saved.hasOwnProperty('maxPages') ? saved.maxPages : 0;
+                document.getElementById('delayPages').value = saved.hasOwnProperty('delayPages') ? saved.delayPages : 300;
+                document.getElementById('delayBatches').value = saved.hasOwnProperty('delayBatches') ? saved.delayBatches : 1000;
+                document.getElementById('concurrency').value = saved.hasOwnProperty('concurrency') ? saved.concurrency : 3;
+                elements.syncType.value = saved.sync_type || 'danh-muc';
+            }
+        };
+        
+        async function populateSelect(selectElement, url, valueKey, nameKey, isSourceData = false, addAllOption = true) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                selectElement.innerHTML = addAllOption ? '<option value="">Tất cả</option>' : '';
+                data.data.items.forEach(item => {
+                    selectElement.innerHTML += `<option value="${item[valueKey]}">${item[nameKey]}</option>`;
+                });
+            } catch (error) {
+                selectElement.innerHTML = '<option value="">Lỗi khi tải</option>';
+            }
         }
-    };
+        
+        function updateSyncValueOptions() {
+            const type = elements.syncType.value;
+            const valueSelect = elements.syncValueSelect;
+            const keywordInput = elements.syncKeywordInput;
+            valueSelect.classList.toggle('d-none', type === 'tim-kiem');
+            keywordInput.classList.toggle('d-none', type !== 'tim-kiem');
+            elements.sortContainer.style.display = type === 'tim-kiem' ? 'none' : 'flex';
+            elements.categoryFilterContainer.style.display = (type === 'tim-kiem' || type === 'the-loai') ? 'none' : 'block';
+            elements.countryFilterContainer.style.display = (type === 'tim-kiem' || type === 'quoc-gia') ? 'none' : 'block';
+            elements.yearFilterContainer.style.display = (type === 'tim-kiem' || type === 'nam-phat-hanh') ? 'none' : 'block';
 
-    const settings = {
-        get() {
-            const selectedOption = elements.syncValueSelect.options[elements.syncValueSelect.selectedIndex];
-            const syncValueText = selectedOption ? selectedOption.text : '';
-
-            const opts = {
-                maxPages: parseInt(document.getElementById('maxPages').value, 10) || 0,
-                delayPages: parseInt(document.getElementById('delayPages').value, 10) || 500,
-                delayBatches: parseInt(document.getElementById('delayBatches').value, 10) || 1000,
-                concurrency: parseInt(document.getElementById('concurrency').value, 10) || 5,
-                sync_type: elements.syncType.value,
-                sync_value: elements.syncType.value === 'tim-kiem' ? elements.syncKeywordInput.value : elements.syncValueSelect.value,
-                sync_value_text: elements.syncType.value === 'tim-kiem' ? elements.syncKeywordInput.value : syncValueText,
-                category: elements.categoryFilter.value,
-                country: elements.countryFilter.value,
-                year: elements.yearFilter.value,
-                sort_field: elements.sortField.value,
-                sort_type: elements.sortType.value,
-            };
-            localStorage.setItem('syncSettings', JSON.stringify(opts));
-            return opts;
-        },
-        load() {
-            const saved = JSON.parse(localStorage.getItem('syncSettings')) || {};
-            document.getElementById('maxPages').value = saved.hasOwnProperty('maxPages') ? saved.maxPages : 0;
-            document.getElementById('delayPages').value = saved.hasOwnProperty('delayPages') ? saved.delayPages : 300;
-            document.getElementById('delayBatches').value = saved.hasOwnProperty('delayBatches') ? saved.delayBatches : 1000;
-            document.getElementById('concurrency').value = saved.hasOwnProperty('concurrency') ? saved.concurrency : 3;
-            elements.syncType.value = saved.sync_type || 'danh-muc';
+            switch(type) {
+                case 'danh-muc':
+                    valueSelect.innerHTML = SOURCE_CATEGORIES.map(cat => `<option value="${cat.value}">${cat.text}</option>`).join('');
+                    break;
+                case 'the-loai':
+                    populateSelect(valueSelect, '/api/the-loai', 'slug', 'name', true, false);
+                    break;
+                case 'quoc-gia':
+                    populateSelect(valueSelect, '/api/quoc-gia', 'slug', 'name', true, false);
+                    break;
+                case 'nam-phat-hanh':
+                    populateSelect(valueSelect, '/api/nam-phat-hanh', 'year', 'year', true, false);
+                    break;
+            }
         }
-    };
 
-    async function populateSelect(selectElement, url, valueKey, nameKey, isSourceData = false, addAllOption = true) {
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            selectElement.innerHTML = addAllOption ? '<option value="">Tất cả</option>' : '';
-            data.data.items.forEach(item => {
-                selectElement.innerHTML += `<option value="${item[valueKey]}">${item[nameKey]}</option>`;
+        // === MAIN LOGIC ===
+        (async () => {
+            await Promise.all([
+                populateSelect(elements.categoryFilter, '/api/the-loai', 'slug', 'name'),
+                populateSelect(elements.countryFilter, '/api/quoc-gia', 'slug', 'name'),
+                populateSelect(elements.yearFilter, '/api/nam-phat-hanh', 'year', 'year')
+            ]);
+            settings.load();
+            updateSyncValueOptions();
+
+            // Event Listeners
+            elements.syncType.addEventListener('change', updateSyncValueOptions);
+            elements.syncButton.addEventListener('click', () => {
+                const options = settings.get();
+                if (!options.sync_value) return alert('Vui lòng chọn hoặc nhập giá trị cho nguồn đồng bộ.');
+                socket.emit('sync:start', options);
             });
-        } catch (error) {
-            selectElement.innerHTML = '<option value="">Lỗi khi tải</option>';
-        }
-    }
+            elements.pauseButton.addEventListener('click', () => {
+                const isCurrentlyPaused = elements.pauseButton.textContent.trim() === 'Tiếp tục';
+                socket.emit(isCurrentlyPaused ? 'sync:resume' : 'sync:pause');
+            });
+            elements.stopButton.addEventListener('click', () => socket.emit('sync:stop'));
 
-    function updateSyncValueOptions() {
-        const type = elements.syncType.value;
-        const valueSelect = elements.syncValueSelect;
-        const keywordInput = elements.syncKeywordInput;
-
-        valueSelect.classList.toggle('d-none', type === 'tim-kiem');
-        keywordInput.classList.toggle('d-none', type !== 'tim-kiem');
-
-        elements.sortContainer.style.display = 'flex';
-        elements.categoryFilterContainer.style.display = 'block';
-        elements.countryFilterContainer.style.display = 'block';
-        elements.yearFilterContainer.style.display = 'block';
-
-        switch(type) {
-            case 'danh-muc':
-                valueSelect.innerHTML = SOURCE_CATEGORIES.map(cat => `<option value="${cat.value}">${cat.text}</option>`).join('');
-                break;
-            case 'the-loai':
-                populateSelect(valueSelect, '/api/the-loai', 'slug', 'name', true, false);
-                elements.categoryFilterContainer.style.display = 'none';
-                break;
-            case 'quoc-gia':
-                populateSelect(valueSelect, '/api/quoc-gia', 'slug', 'name', true, false);
-                elements.countryFilterContainer.style.display = 'none';
-                elements.categoryFilterContainer.style.display = 'none';
-                break;
-            case 'nam-phat-hanh':
-                populateSelect(valueSelect, '/api/nam-phat-hanh', 'year', 'year', true, false);
-                elements.yearFilterContainer.style.display = 'none';
-                break;
-            case 'tim-kiem':
-                elements.sortContainer.style.display = 'none';
-                elements.categoryFilterContainer.style.display = 'none';
-                elements.countryFilterContainer.style.display = 'none';
-                elements.yearFilterContainer.style.display = 'none';
-                break;
-        }
-    }
-    
-    document.addEventListener('DOMContentLoaded', async () => {
-        await Promise.all([
-            populateSelect(elements.categoryFilter, '/api/the-loai', 'slug', 'name'),
-            populateSelect(elements.countryFilter, '/api/quoc-gia', 'slug', 'name'),
-            populateSelect(elements.yearFilter, '/api/nam-phat-hanh', 'year', 'year')
-        ]);
-
-        settings.load();
-        updateSyncValueOptions();
-        
-        elements.syncType.addEventListener('change', updateSyncValueOptions);
-
-        elements.syncButton.addEventListener('click', () => {
-            const options = settings.get();
-            if (!options.sync_value) {
-                alert('Vui lòng chọn hoặc nhập giá trị cho nguồn đồng bộ.');
-                return;
-            }
-            ui.reset();
-            ui.setSyncing(true);
-            socket.emit('sync:start', options);
-        });
-
-        elements.pauseButton.addEventListener('click', () => {
-            isPaused = !isPaused;
-            socket.emit(isPaused ? 'sync:pause' : 'sync:resume');
-            ui.setPaused(isPaused);
-        });
-
-        elements.stopButton.addEventListener('click', () => socket.emit('sync:stop'));
-
-        socket.on('sync-state', (state) => {
-            if (state.status === 'running' || state.status === 'paused') {
-                ui.setSyncing(true);
-                ui.setPaused(state.status === 'paused');
-                if (state.logs) {
-                    elements.logContainer.innerHTML = '';
-                    state.logs.forEach(log => {
-                        const logEntry = document.createElement('div');
-                        const typeToClass = { 'info': 'text-info-emphasis', 'success': 'text-success', 'error': 'text-danger', 'warning': 'text-warning' };
-                        logEntry.className = typeToClass[log.type] || 'text-muted';
-                        logEntry.textContent = `[${log.timestamp}] ${log.message}`;
-                        elements.logContainer.appendChild(logEntry);
-                    });
-                    elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
-                }
-                if (state.results) {
-                    elements.resultsBody.innerHTML = '';
-                    state.results.forEach(movie => {
-                         if (movie.status === 'created' || movie.status === 'updated') {
-                            const newRow = elements.resultsBody.insertRow(0);
-                            const statusClass = movie.status === 'created' ? 'text-bg-success' : 'text-bg-warning';
-                            newRow.innerHTML = `
-                                <td><img src="${movie.thumb}" alt="thumb" style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px;"></td>
-                                <td>${movie.name}</td>
-                                <td><span class="badge text-bg-secondary">${movie.year || ''}</span></td>
-                                <td><span class="badge ${statusClass}">${movie.status}</span></td>
-                            `;
-                        }
-                    });
-                }
-                if (state.progress) {
-                    totalMoviesToProcess = state.progress.total;
-                    elements.statFound.textContent = totalMoviesToProcess;
-                    const percentage = totalMoviesToProcess === 0 ? 0 : Math.round((state.progress.processed / totalMoviesToProcess) * 100);
-                    elements.progressBar.style.width = `${percentage}%`;
-                    elements.progressBar.textContent = `${percentage}%`;
-                    elements.statSuccess.textContent = state.progress.success;
-                    elements.statErrors.textContent = state.progress.errors;
-                }
-            }
-        });
-        
-        socket.on('sync-log', (data) => {
-            const logContainer = elements.logContainer;
-            const shouldScroll = logContainer.scrollTop + logContainer.clientHeight >= logContainer.scrollHeight - 10;
-            const logEntry = document.createElement('div');
-            const typeToClass = { 'info': 'text-info-emphasis', 'success': 'text-success', 'error': 'text-danger', 'warning': 'text-warning' };
-            logEntry.className = typeToClass[data.type] || 'text-muted';
-            logEntry.textContent = `[${data.timestamp}] ${data.message}`;
-            logContainer.appendChild(logEntry);
-            if (shouldScroll) {
-                logContainer.scrollTop = logContainer.scrollHeight;
-            }
-        });
-
-        socket.on('sync-start', (data) => {
-            totalMoviesToProcess = data.total;
-            elements.statFound.textContent = totalMoviesToProcess;
-        });
-
-        socket.on('sync-progress', (data) => {
-            const percentage = totalMoviesToProcess === 0 ? 0 : Math.round((data.processed / totalMoviesToProcess) * 100);
-            elements.progressBar.style.width = `${percentage}%`;
-            elements.progressBar.textContent = `${percentage}%`;
-            elements.statSuccess.textContent = data.success;
-            elements.statErrors.textContent = data.errors;
-        });
-
-        socket.on('movie-synced', (movie) => {
-            if (movie.status === 'created' || movie.status === 'updated') {
-                const newRow = elements.resultsBody.insertRow(0);
-                const statusClass = movie.status === 'created' ? 'text-bg-success' : 'text-bg-warning';
-                newRow.innerHTML = `
-                    <td><img src="${movie.thumb}" alt="thumb" style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px;"></td>
-                    <td>${movie.name}</td>
-                    <td><span class="badge text-bg-secondary">${movie.year || ''}</span></td>
-                    <td><span class="badge ${statusClass}">${movie.status}</span></td>
-                `;
-            }
-        });
-
-        socket.on('sync-finished', (status) => {
-            ui.setSyncing(false);
-            elements.progressBar.classList.remove('progress-bar-animated');
-            elements.progressBar.classList.toggle('bg-success', status !== 'stopped');
-            elements.progressBar.classList.toggle('bg-danger', status === 'stopped');
-        });
+            // Socket Listeners
+            socket.on('sync-state', ui.renderState);
+            socket.on('sync-log', ui.logToUI);
+            socket.on('sync-progress', (progress) => ui.updateProgressBar(progress, 'running'));
+            socket.on('movie-synced', ui.addResultRow);
+            socket.on('sync-finished', (status) => {
+                 ui.renderState({
+                    status: status === 'stopped' ? 'stopped' : 'idle',
+                    logs: [], // Server sẽ gửi lại state đầy đủ nếu client kết nối lại
+                    results: [],
+                    progress: { processed: 0, total: 0, success: 0, errors: 0 }
+                });
+                socket.emit('sync:get-state'); // Yêu cầu trạng thái cuối cùng
+            });
+            socket.on('sync-start', (data) => {
+                ui.updateProgressBar({ processed: 0, total: data.total, success: 0, errors: 0}, 'running');
+            });
+        })();
     });
 </script>

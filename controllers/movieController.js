@@ -1,6 +1,6 @@
 // File: controllers/movieController.js
 
-const { Movie, Person, Category, Country, Episode, Image } = require('../models');
+const { Movie, Person, Category, Country, Episode } = require('../models');
 
 // Đảm bảo hàm này được export với từ khóa 'exports'
 exports.getHomePage = async (req, res) => {
@@ -44,9 +44,6 @@ exports.getMovieDetail = async (req, res) => {
                 { 
                     model: Episode, 
                     order: [['name', 'ASC']] 
-                },
-                { 
-                    model: Image 
                 },
                 {
                     model: Person, // <<--- THÊM DÒNG NÀY ĐỂ LẤY DIỄN VIÊN

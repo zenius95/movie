@@ -17,11 +17,8 @@ router.post('/movies/edit/:id', adminController.updateMovie);
 router.post('/movies/delete/:id', adminController.deleteMovie);
 
 // === THÊM ROUTES MỚI CHO ẢNH ===
-// Route để xử lý việc tải lên ảnh (poster, thumb, backdrop)
+// Route để xử lý việc tải lên ảnh (poster, thumb)
 router.post('/movies/edit/:id/upload-image', upload.single('imageFile'), adminController.uploadImage);
-
-// Route để xóa một ảnh trong thư viện (backdrop)
-router.post('/images/delete/:id', adminController.deleteImage);
 // === KẾT THÚC THÊM ROUTES MỚI ===
 
 // Episode Routes

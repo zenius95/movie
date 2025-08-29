@@ -7,9 +7,8 @@ const Episode = require('./episode')(sequelize, DataTypes);
 const Person = require('./person')(sequelize, DataTypes);
 const Category = require('./category')(sequelize, DataTypes);
 const Country = require('./country')(sequelize, DataTypes);
-const Image = require('./image')(sequelize, DataTypes);
 const User = require('./user')(sequelize, DataTypes);
-const Year = require('./year')(sequelize, DataTypes); // <-- THÊM MODEL YEAR
+const Year = require('./year')(sequelize, DataTypes);
 
 // ===============================================
 // ĐỊNH NGHĨA CÁC MỐI QUAN HỆ
@@ -56,18 +55,13 @@ Person.belongsToMany(Movie, {
 Movie.hasMany(Episode, { foreignKey: 'movie_id', onDelete: 'CASCADE' });
 Episode.belongsTo(Movie, { foreignKey: 'movie_id' });
 
-// Movie -> Image (Một - Nhiều)
-Movie.hasMany(Image, { foreignKey: 'movie_id', onDelete: 'CASCADE' });
-Image.belongsTo(Movie, { foreignKey: 'movie_id' });
-
-// Year -> Movie (Một - Nhiều) <-- THÊM MỐI QUAN HỆ CHO NĂM
+// Year -> Movie (Một - Nhiều)
 Year.hasMany(Movie, { foreignKey: 'year', sourceKey: 'year' });
 Movie.belongsTo(Year, { foreignKey: 'year', targetKey: 'year' });
 
 
 // Đồng bộ models với database
 const initDb = async () => {
-  // SỬA Ở ĐÂY: Dùng alter: true để không làm mất dữ liệu khi khởi động lại
   await sequelize.sync({ alter: true }); 
   console.log("Database & tables have been synced successfully!");
 };
@@ -80,8 +74,7 @@ module.exports = {
   Person,
   Category,
   Country,
-  Image,
-  User,       // <-- EXPORT USER
-  Year,       // <-- EXPORT YEAR
+  User,
+  Year,
   MoviePerson
 };

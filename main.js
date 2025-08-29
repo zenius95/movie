@@ -7,8 +7,8 @@ const SequelizeStore = require('connect-session-sequelize')(session.Store);
 
 const { sequelize, initDb } = require('./models');
 const movieRoutes = require('./routes/movieRoutes');
-const authRoutes = require('./routes/authRoutes'); // <-- THÊM
-const adminRoutes = require('./routes/adminRoutes'); // <-- THÊM
+const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const syncControl = require('./scripts/sync');
 const { fetchApi } = require('./utils/apiFetcher');
 const expressLayouts = require('express-ejs-layouts');
@@ -37,20 +37,20 @@ myStore.sync();
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use(expressLayouts); // <-- THÊM
+app.use(expressLayouts);
 
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // <-- THÊM ĐỂ PARSE FORM
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/', movieRoutes);
-app.use('/', authRoutes); // <-- THÊM
-app.use('/admin', adminRoutes); // <-- THÊM
+app.use('/', authRoutes);
+app.use('/admin', adminRoutes);
 
 
-// API routes (giữ nguyên)
+// API routes
 app.get('/api/the-loai', async (req, res) => {
     try {
         const data = await fetchApi('/api/the-loai');
@@ -79,34 +79,34 @@ app.get('/api/nam-phat-hanh', async (req, res) => {
 });
 
 
-// Socket.io (giữ nguyên)
+// Socket.io
 io.on('connection', (socket) => {
   console.log('Một người dùng đã kết nối vào trang sync');
   
+  // Gửi ngay trạng thái hiện tại cho client vừa kết nối
   socket.emit('sync-state', syncControl.getState());
 
   socket.on('sync:start', (options) => {
     syncControl.start(io, options);
   });
   socket.on('sync:pause', () => {
-    syncControl.pause(socket);
+    syncControl.pause(io);
   });
   socket.on('sync:resume', () => {
-    syncControl.resume(socket);
+    syncControl.resume(io);
   });
   socket.on('sync:stop', () => {
-    syncControl.stop(socket);
+    syncControl.stop(io);
   });
 });
 
 initDb().then(async () => {
-    // TẠO USER ADMIN MẶC ĐỊNH KHI KHỞI ĐỘNG (NẾU CHƯA CÓ)
     const { User } = require('./models');
     const admin = await User.findOne({ where: { username: 'admin' } });
     if (!admin) {
         await User.create({
             username: 'admin',
-            password: 'password', // Mật khẩu là 'password', nên đổi ngay sau lần đăng nhập đầu tiên
+            password: 'password',
             role: 'admin'
         });
         console.log('Admin user created with default password "password"');

@@ -66,6 +66,11 @@ module.exports = (sequelize, DataTypes) => {
         imdb: {
             type: DataTypes.JSON
         },
+        // --- THÊM MỚI ---
+        images: {
+            type: DataTypes.JSON
+        },
+        // --- KẾT THÚC THÊM MỚI ---
         modified_at: {
             type: DataTypes.DATE,
             allowNull: false

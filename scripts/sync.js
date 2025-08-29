@@ -1,14 +1,13 @@
 const {
-    initDb, Movie, Episode, Person, Category, Country, Image, MoviePerson, sequelize, Year
+    initDb, Movie, Episode, Person, Category, Country, MoviePerson, sequelize, Year
 } = require('../models');
 const { fetchApi } = require('../utils/apiFetcher');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 
-// Trạng thái của tiến trình, được quản lý trên server để hỗ trợ chạy ngầm
 let syncState = {
-    status: 'idle', // idle, running, paused, stopped
+    status: 'idle',
     logs: [],
     results: [],
     progress: { processed: 0, total: 0, success: 0, errors: 0 },
@@ -17,23 +16,20 @@ let syncState = {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Hàm helper để gửi log đến cả console và client qua socket
-const log = (socket, type, message) => {
+const log = (io, type, message) => {
     const logEntry = { type, message, timestamp: new Date().toLocaleTimeString() };
     syncState.logs.push(logEntry);
-    if (syncState.logs.length > 200) syncState.logs.shift();
+    if (syncState.logs.length > 500) syncState.logs.splice(0, syncState.logs.length - 500);
     console.log(`[${type.toUpperCase()}] ${message}`);
-    if(socket) socket.emit('sync-log', logEntry);
+    if(io) io.emit('sync-log', logEntry);
 };
 
-// Hàm điều khiển tiến trình
 const control = {
-    start: (socket, options) => {
+    start: (io, options) => {
         if (syncState.status === 'running' || syncState.status === 'paused') {
-            log(socket, 'error', 'Một tiến trình đồng bộ khác đang chạy. Vui lòng đợi.');
+            log(io, 'error', 'Một tiến trình đồng bộ khác đang chạy. Vui lòng đợi.');
             return;
         }
-        // Gán trực tiếp options mới nhận được từ client
         syncState = { 
             status: 'running', 
             logs: [], 
@@ -41,36 +37,45 @@ const control = {
             progress: { processed: 0, total: 0, success: 0, errors: 0 }, 
             options: options 
         };
-        // Truyền options trực tiếp vào hàm startSync
-        startSync(socket, options); 
+        io.emit('sync-state', syncState);
+        log(io, 'info', '====================');
+        log(io, 'info', 'BẮT ĐẦU TIẾN TRÌNH ĐỒNG BỘ MỚI');
+        log(io, 'info', '====================');
+        startSync(io, options); 
     },
-    pause: (socket) => {
+    pause: (io) => {
         if (syncState.status === 'running') {
             syncState.status = 'paused';
-            log(socket, 'warning', 'Tiến trình đã được yêu cầu tạm dừng.');
+            log(io, 'warning', 'Tiến trình đã được yêu cầu tạm dừng.');
+            io.emit('sync-state', syncState);
         }
     },
-    resume: (socket) => {
+    resume: (io) => {
         if (syncState.status === 'paused') {
             syncState.status = 'running';
-            log(socket, 'info', 'Tiến trình đã được tiếp tục.');
+            log(io, 'info', 'Tiến trình đã được tiếp tục.');
+            io.emit('sync-state', syncState);
         }
     },
-    stop: (socket) => {
+    stop: (io) => {
         if (syncState.status === 'running' || syncState.status === 'paused') {
+            const previousStatus = syncState.status;
             syncState.status = 'stopped';
-            log(socket, 'error', 'Tiến trình đã được yêu cầu dừng lại.');
+            log(io, 'error', 'Tiến trình đã được yêu cầu dừng lại.');
+            // Nếu đang chạy, nó sẽ tự dừng ở lần checkStatus tiếp theo. Nếu đang tạm dừng, ta cần kết thúc nó ngay.
+            if (previousStatus === 'paused') {
+                io.emit('sync-finished', syncState.status);
+            }
         }
     },
     getState: () => syncState,
 };
 
-// Hàm chờ và kiểm tra trạng thái để có thể pause/stop
-async function checkStatus(socket) {
+async function checkStatus(io) {
     let loggedPaused = false;
     while (syncState.status === 'paused') {
         if (!loggedPaused) {
-            log(socket, 'warning', 'Tiến trình đã tạm dừng. Đang chờ resume...');
+            log(io, 'warning', 'Tiến trình đã tạm dừng. Đang chờ resume...');
             loggedPaused = true;
         }
         await sleep(1000);
@@ -80,7 +85,7 @@ async function checkStatus(socket) {
     }
 }
 
-async function startSync(socket, options) {
+async function startSync(io, options) {
     const { 
         sync_type, sync_value, maxPages, delayPages, 
         delayBatches, concurrency, sync_value_text,
@@ -131,25 +136,20 @@ async function startSync(socket, options) {
         const readableSyncType = syncTypeMap[sync_type] || sync_type;
         const readableSyncValue = sync_value_text && sync_value_text.trim() !== '' ? sync_value_text : sync_value;
 
-        log(socket, 'info', `Bắt đầu quá trình đồng bộ hóa...`);
-        log(socket, 'info', `PHASE 1: Tìm kiếm phim từ ${readableSyncType}: ${readableSyncValue}`);
+        log(io, 'info', `PHASE 1: Tìm kiếm phim từ ${readableSyncType}: ${readableSyncValue}`);
         
         const allMoviesFound = [];
         let currentPage = 1;
         let totalPages = Infinity;
 
         while (currentPage <= totalPages && (maxPages === 0 || currentPage <= maxPages)) {
-            await checkStatus(socket);
+            await checkStatus(io);
             
             let apiUrl = `${basePath}?page=${currentPage}`;
-            if (sync_type === 'tim-kiem') {
-                apiUrl += `&keyword=${encodeURIComponent(sync_value)}`;
-            }
-            if (filterQueryString) {
-                apiUrl += `&${filterQueryString}`;
-            }
+            if (sync_type === 'tim-kiem') apiUrl += `&keyword=${encodeURIComponent(sync_value)}`;
+            if (filterQueryString) apiUrl += `&${filterQueryString}`;
             
-            log(socket, 'info', `  - Đang quét trang: ${currentPage}`);
+            log(io, 'info', `  - Đang quét trang: ${currentPage}`);
             const data = await fetchApi(apiUrl);
 
             if (!data || !data.data || !data.data.items || data.data.items.length === 0) break;
@@ -166,62 +166,64 @@ async function startSync(socket, options) {
                 const apiTimestamp = new Date(apiMovie.modified.time).getTime();
                 return !existingTimestamp || apiTimestamp > existingTimestamp;
             });
-
+            
             if (moviesToAdd.length > 0) {
                  moviesToAdd.forEach(movie => allMoviesFound.push({ slug: movie.slug, name: movie.name }));
-                 log(socket, 'info', `    -> Tìm thấy ${moviesToAdd.length} phim mới/cần cập nhật trên trang ${currentPage}.`);
+                 log(io, 'info', `    -> Tìm thấy ${moviesToAdd.length} phim mới/cần cập nhật trên trang ${currentPage}.`);
             } else {
-                 log(socket, 'info', `    -> Không có phim mới/cập nhật trên trang ${currentPage}.`);
+                 log(io, 'info', `    -> Không có phim mới/cập nhật trên trang ${currentPage}.`);
             }
            
             currentPage++;
-            await sleep(delayPages);
+            if (delayPages > 0) await sleep(delayPages);
         }
         
         let moviesToProcess = allMoviesFound;
-        log(socket, 'info', `PHASE 1 KẾT THÚC: Tìm thấy ${moviesToProcess.length} phim. Sẽ xử lý ${moviesToProcess.length} phim.`);
+        log(io, 'info', `PHASE 1 KẾT THÚC: Tìm thấy ${moviesToProcess.length} phim.`);
         syncState.progress.total = moviesToProcess.length;
-        socket.emit('sync-start', { total: moviesToProcess.length });
+        io.emit('sync-start', { total: moviesToProcess.length });
         
         if (moviesToProcess.length > 0) {
             for (let i = 0; i < moviesToProcess.length; i += concurrency) {
-                await checkStatus(socket);
+                await checkStatus(io);
                 const batch = moviesToProcess.slice(i, i + concurrency);
-                const results = await Promise.all(batch.map(movie => processMovieBySlug(movie.slug, movie.name, socket)));
+                const results = await Promise.all(batch.map(movie => processMovieBySlug(movie.slug, movie.name, io)));
                 results.forEach(result => {
                     if (result) {
                         if (result.status !== 'skipped') syncState.progress.success++;
                         syncState.results.push(result);
-                        socket.emit('movie-synced', result);
+                        io.emit('movie-synced', result);
                     } else {
                         syncState.progress.errors++;
                     }
                 });
                 syncState.progress.processed += batch.length;
-                socket.emit('sync-progress', syncState.progress);
-                log(socket, 'info', `--- Hoàn thành lô ${Math.floor(i / concurrency) + 1} / ${Math.ceil(moviesToProcess.length / concurrency)} ---`);
-                await sleep(delayBatches);
+                io.emit('sync-progress', syncState.progress);
+                log(io, 'info', `--- Hoàn thành lô ${Math.floor(i / concurrency) + 1} / ${Math.ceil(moviesToProcess.length / concurrency)} ---`);
+                if (delayBatches > 0) await sleep(delayBatches);
             }
         }
         
-        log(socket, 'success', '✅ ĐỒNG BỘ HÓA HOÀN TẤT!');
+        log(io, 'success', '✅ ĐỒNG BỘ HÓA HOÀN TẤT!');
 
     } catch (error) {
         if (error.message === 'Sync stopped by user') {
-            log(socket, 'error', '⏹️ ĐỒNG BỘ ĐÃ DỪNG THEO YÊU CẦU.');
+            log(io, 'error', '⏹️ ĐỒNG BỘ ĐÃ DỪNG THEO YÊU CẦU.');
         } else {
-            log(socket, 'error', `❌ Đã xảy ra lỗi nghiêm trọng: ${error.message}`);
+            log(io, 'error', `❌ Đã xảy ra lỗi nghiêm trọng: ${error.message}`);
             console.error(error);
         }
     } finally {
-        syncState.status = 'idle';
-        socket.emit('sync-finished', syncState.status);
+        if (syncState.status !== 'stopped') {
+            syncState.status = 'idle';
+        }
+        io.emit('sync-finished', syncState.status);
     }
 }
 
-async function processMovieBySlug(slug, movieName, socket) {
-    await checkStatus(socket);
-    log(socket, 'info', `  -> Đang xử lý phim: "${movieName}"`);
+async function processMovieBySlug(slug, movieName, io) {
+    await checkStatus(io);
+    log(io, 'info', `  -> Đang xử lý phim: "${movieName}"`);
 
     const [movieDetail, peopleDetail, imageDetail] = await Promise.all([
         fetchApi(`/api/phim/${slug}`),
@@ -230,7 +232,7 @@ async function processMovieBySlug(slug, movieName, socket) {
     ]);
 
     if (!movieDetail || !movieDetail.data || !movieDetail.data.item) {
-        log(socket, 'error', `Lỗi: Không thể lấy chi tiết phim "${movieName}"`);
+        log(io, 'error', `Lỗi: Không thể lấy chi tiết phim "${movieName}"`);
         return null;
     }
     
@@ -247,11 +249,11 @@ async function processMovieBySlug(slug, movieName, socket) {
     if (!fs.existsSync(movieImageDir)) fs.mkdirSync(movieImageDir, { recursive: true });
     
     const posterDestPath = path.join(movieImageDir, `poster${path.extname(movieData.poster_url) || '.jpg'}`);
-    await downloadImage(`${ophimCdnUrl}/uploads/movies/${movieData.poster_url}`, posterDestPath, socket);
+    await downloadImage(`${ophimCdnUrl}/uploads/movies/${movieData.poster_url}`, posterDestPath, io);
     const localPosterPath = `/images/${movieData.slug}/${path.basename(posterDestPath)}`;
 
     const thumbDestPath = path.join(movieImageDir, `thumb${path.extname(movieData.thumb_url) || '.jpg'}`);
-    await downloadImage(`${ophimCdnUrl}/uploads/movies/${movieData.thumb_url}`, thumbDestPath, socket);
+    await downloadImage(`${ophimCdnUrl}/uploads/movies/${movieData.thumb_url}`, thumbDestPath, io);
     const localThumbPath = `/images/${movieData.slug}/${path.basename(thumbDestPath)}`;
 
     const t = await sequelize.transaction();
@@ -260,6 +262,8 @@ async function processMovieBySlug(slug, movieName, socket) {
             await Year.findOrCreate({ where: { year: movieData.year }, transaction: t });
         }
 
+        const images = imageData.map(img => `${tmdbCdnUrl}${img.file_path}`);
+
         const moviePayload = {
             _id: movieData._id, name: movieData.name, origin_name: movieData.origin_name,
             slug: movieData.slug, content: movieData.content, type: movieData.type,
@@ -267,7 +271,8 @@ async function processMovieBySlug(slug, movieName, socket) {
             trailer_url: movieData.trailer_url, time: movieData.time, episode_current: movieData.episode_current,
             episode_total: movieData.episode_total, quality: movieData.quality, lang: movieData.lang,
             year: movieData.year, view: movieData.view, chieurap: movieData.chieurap,
-            modified_at: apiModifiedTime, tmdb: movieData.tmdb, imdb: movieData.imdb
+            modified_at: apiModifiedTime, tmdb: movieData.tmdb, imdb: movieData.imdb,
+            images: images
         };
         const [movieInstance, created] = await Movie.upsert(moviePayload, { transaction: t, returning: true });
         const action = created ? 'created' : 'updated';
@@ -307,31 +312,6 @@ async function processMovieBySlug(slug, movieName, socket) {
             await MoviePerson.destroy({ where: { movie_id: movieInstance._id }, transaction: t });
             await MoviePerson.bulkCreate(moviePersonAssociations, { transaction: t });
         }
-
-        if (imageData.length > 0) {
-            await Image.destroy({ where: { movie_id: movieInstance._id }, transaction: t });
-            
-            const downloadedImages = await Promise.all(imageData.map(async (img, index) => {
-                await checkStatus(socket);
-                const imageName = `${img.type}-${index}${path.extname(img.file_path) || '.jpg'}`;
-                const destPath = path.join(movieImageDir, imageName);
-                const fullImageUrl = `${tmdbCdnUrl}${img.file_path}`;
-                
-                await downloadImage(fullImageUrl, destPath, socket);
-
-                return {
-                    movie_id: movieInstance._id,
-                    type: img.type,
-                    file_path: `/images/${movieData.slug}/${imageName}`,
-                    width: img.width,
-                    height: img.height,
-                    aspect_ratio: img.aspect_ratio
-                };
-            }));
-
-            await Image.bulkCreate(downloadedImages, { transaction: t });
-            log(socket, 'info', `  -> Đã tải và lưu ${downloadedImages.length} hình ảnh cho phim.`);
-        }
         
         await t.commit();
         const movieResult = {
@@ -345,21 +325,21 @@ async function processMovieBySlug(slug, movieName, socket) {
         return movieResult;
     } catch (error) {
         await t.rollback();
-        log(socket, 'error', `Giao dịch thất bại cho phim "${movieName}". Đã rollback. Lỗi: ${error.message}`);
+        log(io, 'error', `Giao dịch thất bại cho phim "${movieName}". Đã rollback. Lỗi: ${error.message}`);
         if (error.message === 'Sync stopped by user') throw error;
         return null;
     }
 }
 
-async function downloadImage(url, destPath, socket, retries = 3) {
+async function downloadImage(url, destPath, io, retries = 3) {
     if (!url || !(url.startsWith('http') || url.startsWith('https'))) {
-        log(socket, 'warning', `URL không hợp lệ, bỏ qua tải ảnh: ${url}`);
+        log(io, 'warning', `URL không hợp lệ, bỏ qua tải ảnh: ${url}`);
         return;
     };
     
     for (let i = 0; i < retries; i++) {
         try {
-            await checkStatus(socket);
+            await checkStatus(io);
             const response = await fetch(url, { timeout: 15000 });
             if (!response.ok) throw new Error(`Server response: ${response.statusText}`);
             
@@ -371,9 +351,9 @@ async function downloadImage(url, destPath, socket, retries = 3) {
             });
             return;
         } catch (error) {
-            log(socket, 'warning', `Lần ${i + 1}/${retries}: Lỗi khi tải ảnh từ ${url}. Thử lại sau 1 giây...`);
+            log(io, 'warning', `Lần ${i + 1}/${retries}: Lỗi khi tải ảnh từ ${url}. Thử lại sau 1 giây...`);
             if (i === retries - 1) {
-                log(socket, 'error', `Không thể tải ảnh từ ${url} sau ${retries} lần thử. Lỗi: ${error.message}`);
+                log(io, 'error', `Không thể tải ảnh từ ${url} sau ${retries} lần thử. Lỗi: ${error.message}`);
             } else {
                 await sleep(1000);
             }
