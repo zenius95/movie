@@ -24,7 +24,10 @@ function createToolInterface(config) {
             config.elements.logContainer.scrollTop = config.elements.logContainer.scrollHeight;
             
             config.elements.resultsBody.innerHTML = '';
-            processedItems = {}; 
+            
+            // THAY ĐỔI: Xóa object cũ thay vì tạo mới để giữ nguyên tham chiếu
+            Object.keys(processedItems).forEach(key => delete processedItems[key]);
+            
             state.results.forEach(this.addResultRow);
             
             if (config.elements.loadingOverlay) {
@@ -132,7 +135,7 @@ function createToolInterface(config) {
     });
     
     if (config.customSocketEvents) {
-        config.customSocketEvents(socket, ui);
+        config.customSocketEvents(socket, ui, processedItems);
     }
     
     if (config.initialize) {

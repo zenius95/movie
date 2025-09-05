@@ -160,22 +160,48 @@ exports.uploadImage = async (req, res) => {
     }
 };
 
-// HÀM MỚI: CẬP NHẬT NỘI DUNG AI
-exports.updateAiContent = async (req, res) => {
+// HÀM MỚI: LẤY NỘI DUNG AI CỦA MỘT PHIM
+exports.getAiContent = async (req, res) => {
     try {
-        const movie = await Movie.findByPk(req.params.id);
+        const movie = await Movie.findByPk(req.params.id, {
+            attributes: ['ai_content'] // Chỉ lấy trường ai_content
+        });
         if (!movie) {
             return res.status(404).json({ success: false, message: 'Không tìm thấy phim.' });
         }
-        
-        await movie.update({ ai_content: req.body.ai_content });
+        res.json({ success: true, ai_content: movie.ai_content });
+    } catch (error) {
+        console.error("Lỗi khi lấy nội dung AI:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi lấy nội dung AI.' });
+    }
+};
+
+// HÀM CẬP NHẬT NỘI DUNG AI - ĐÃ SỬA LỖI
+exports.updateAiContent = async (req, res) => {
+    try {
+        const movieId = req.params.id;
+        const { ai_content } = req.body;
+
+        const [affectedRows] = await Movie.update(
+            { ai_content: ai_content },
+            { where: { _id: movieId } }
+        );
+
+        if (affectedRows === 0) {
+            // Có thể phim không tồn tại, hoặc nội dung gửi lên giống hệt nội dung cũ
+            const movieExists = await Movie.findByPk(movieId);
+            if (!movieExists) {
+                 return res.status(404).json({ success: false, message: 'Không tìm thấy phim để cập nhật.' });
+            }
+        }
         
         res.json({ success: true, message: 'Cập nhật nội dung AI thành công!' });
     } catch (error) {
-        console.error(error);
+        console.error("Lỗi khi cập nhật nội dung AI:", error);
         res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật nội dung AI.' });
     }
 };
+
 
 // ===============================================
 // QUẢN LÝ TẬP PHIM

@@ -16,7 +16,9 @@ router.post('/movies/edit/:id', adminController.updateMovie);
 router.post('/movies/delete/:id', adminController.deleteMovie);
 router.post('/movies/edit/:id/upload-image', upload.single('imageFile'), adminController.uploadImage);
 
-// THÊM ROUTE MỚI ĐỂ CẬP NHẬT NỘI DUNG AI
+// THÊM ROUTE MỚI ĐỂ LẤY NỘI DUNG AI
+router.get('/movies/get-ai-content/:id', adminController.getAiContent);
+// ROUTE CẬP NHẬT NỘI DUNG AI
 router.post('/movies/update-ai-content/:id', adminController.updateAiContent);
 
 // Episode Routes

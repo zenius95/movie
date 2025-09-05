@@ -124,12 +124,13 @@ async function startGeneration(io, options) {
                         result = await processMovie(movie, systemPrompt, userPrompt, effectiveApiKeys[currentKeyIndex], model, io, post_status);
                         success = true; // Success, exit while loop
                     } catch (error) {
-                        const statusCode = error.response ? error.response.status : null;
-                        if (statusCode === 401 || statusCode === 429) {
+                        // OpenAI v4+ uses error.status directly
+                        if (error.status === 401 || error.status === 429) {
                             log(io, `Key API thứ ${currentKeyIndex + 1} gặp lỗi. Thử key tiếp theo...`, 'warning');
                             currentKeyIndex++;
                         } else {
-                            throw error; // Other error, re-throw to outer catch
+                            // For other errors, re-throw to be caught by the main catch block and stop the process
+                            throw error;
                         }
                     }
                 }
@@ -206,8 +207,9 @@ async function processMovie(movie, systemPrompt, userPrompt, apiKey, model, io, 
                 ai_content: resultJson 
             };
         } catch (error) {
-            if (error.response && (error.response.status === 401 || error.response.status === 429)) {
-                throw error;
+            // OpenAI v4+ uses error.status directly
+            if (error.status === 401 || error.status === 429) {
+                throw error; // Re-throw to be caught by the key-switching logic in startGeneration
             }
             
             log(io, `Lỗi xử lý phim "${movie.name}" (lần thử ${attempt}): ${error.message}`, 'warning');
@@ -215,7 +217,7 @@ async function processMovie(movie, systemPrompt, userPrompt, apiKey, model, io, 
                 log(io, `Bỏ qua phim "${movie.name}" sau ${MAX_RETRIES} lần thử thất bại.`, 'error');
                 return null;
             }
-            await sleep(2000);
+            await sleep(2000); // Wait before retrying for non-API key errors
         }
     }
 }

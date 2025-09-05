@@ -62,7 +62,8 @@ Movie.belongsTo(Year, { foreignKey: 'year', targetKey: 'year' });
 
 // Đồng bộ models với database
 const initDb = async () => {
-  await sequelize.sync({ alter: true }); 
+  // THAY ĐỔI: Gỡ bỏ { alter: true } để tránh lỗi khi khởi động
+  await sequelize.sync(); 
   console.log("Database & tables have been synced successfully!");
 };
 
