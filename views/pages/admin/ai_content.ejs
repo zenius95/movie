@@ -10,9 +10,7 @@
 </style>
 
 <div id="loading-overlay">
-    <div class="spinner-border text-light" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
+    <div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div>
     <p class="mt-3">Đang kiểm tra trạng thái...</p>
 </div>
 
@@ -24,27 +22,53 @@
                 <h5 class="mb-0">Bảng điều khiển AI</h5>
             </div>
             <div class="card-body d-flex flex-column">
-                <div id="settings-form">
-                    <h6>Tùy chọn</h6>
+                <div id="settings-form" class="flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
+                    <h6><i class="bi bi-gear-wide-connected"></i> Cài đặt</h6>
+                     <div class="mb-3">
+                        <label for="ai-target" class="form-label">Mục tiêu</label>
+                        <select class="form-select form-select-sm" id="ai-target">
+                            <option value="all" selected>Tất cả phim</option>
+                            <option value="empty">Chỉ phim chưa có nội dung AI</option>
+                            <option value="random_10">10 phim ngẫu nhiên</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ai-model" class="form-label">Chọn model</label>
+                        <select class="form-select form-select-sm" id="ai-model">
+                            <option value="gpt-4o">GPT-4o (Mới nhất)</option>
+                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                            <option value="gpt-3.5-turbo-1106" selected>GPT-3.5 Turbo (Nhanh & Rẻ)</option>
+                            <option value="gpt-5-pro" disabled>GPT-5 Pro (Chưa phát hành)</option>
+                        </select>
+                    </div>
                     <div class="row g-2 mb-3">
                         <div class="col"><label for="concurrency" class="form-label">Chạy đồng thời</label><input type="number" class="form-control form-control-sm" id="concurrency" value="3"></div>
                         <div class="col"><label for="delay" class="form-label">Delay mỗi lô (ms)</label><input type="number" class="form-control form-control-sm" id="delay" value="1000"></div>
                     </div>
-                    <h6>Mục tiêu</h6>
-                    <div class="input-group mb-3">
-                        <select class="form-select form-select-sm" id="ai-target">
-                            <option value="all" selected>Tất cả phim</option>
-                            <option value="empty">Chỉ phim chưa có nội dung AI</option>
-                        </select>
-                    </div>
-                    <h6>Prompt AI</h6>
                     <div class="mb-3">
-                        <textarea class="form-control form-control-sm" id="ai-prompt" rows="5" 
-                            placeholder="Viết prompt cho AI, dùng các biến như {name}, {year}, {content}, {slug}, {origin_name}...">Viết một đoạn mô tả hấp dẫn và sáng tạo cho bộ phim "{name}" ({origin_name}), phát hành năm {year}. Nội dung gốc của phim là: {content}. Đoạn mô tả nên dài khoảng 150-200 từ, độc đáo và thu hút người đọc.</textarea>
-                        <small class="form-text text-muted">Có thể dùng các biến: `{name}`, `{origin_name}`, `{slug}`, `{content}`, `{type}`, `{status}`, `{time}`, `{episode_current}`, `{episode_total}`, `{quality}`, `{lang}`, `{year}`, `{view}`, `{chieurap}`, `{tmdb}`, `{imdb}`, `{images}`, `{modified_at}`</small>
+                        <label for="api-key" class="form-label">OpenAI API Key(s)</label>
+                        <textarea class="form-control form-control-sm" id="api-key" rows="3" placeholder="Nhập mỗi key một dòng..."></textarea>
+                        <small class="form-text text-muted">Nếu bỏ trống, hệ thống sẽ dùng key từ file `.env`.</small>
+                    </div>
+                    <hr>
+                    
+                    <h6><i class="bi bi-file-text"></i> Cài đặt Prompt</h6>
+                    <div class="mb-3">
+                        <label for="ai-system-prompt" class="form-label">System Prompt</label>
+                        <textarea class="form-control form-control-sm" id="ai-system-prompt" rows="4">Bạn là một trợ lý AI chuyên tạo ra nội dung HTML và đóng gói nó trong một cấu trúc JSON. Mọi phản hồi của bạn BẮT BUỘC phải là một đối tượng JSON hợp lệ và không chứa bất kỳ ký tự nào khác bên ngoài nó.
+
+Đối tượng JSON phải tuân thủ nghiêm ngặt cấu trúc sau: {"content": "chuỗi_html_cua_ban"}.
+
+Giá trị của khóa "content" phải là một chuỗi (string) duy nhất chứa mã HTML.</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ai-user-prompt" class="form-label">User Prompt</label>
+                        <textarea class="form-control form-control-sm" id="ai-user-prompt" rows="5">Dựa vào thông tin ban đầu về phim "{name}", hãy viết một bài đánh giá chi tiết bằng HTML...</textarea>
+                         <small class="form-text text-muted">Các biến: `{name}`, `{origin_name}`, `{slug}`, `{content}`, `{year}`...</small>
                     </div>
                 </div>
-                <div class="mt-auto">
+
+                <div class="mt-auto pt-3">
                     <div class="d-grid gap-2">
                         <button id="startButton" class="btn btn-primary btn-lg"><i class="bi bi-play-circle-fill me-2"></i><span id="button-text">Bắt đầu</span></button>
                         <div class="btn-group">
@@ -56,9 +80,10 @@
             </div>
         </div>
     </div>
+
     <div class="col-lg-8 col-xl-9">
         <div class="card shadow-sm mb-4">
-            <div class="card-header"><h5 class="mb-0">Tiến trình</h5></div>
+            <div class="card-header"><h5 class="mb-0">Tiến trình Tạo Nội Dung</h5></div>
             <div class="card-body">
                 <div class="progress" role="progressbar" style="height: 25px;">
                     <div id="progress-bar" class="progress-bar" style="width: 0%">0%</div>
@@ -77,9 +102,9 @@
                     <table class="table table-hover table-sm align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Tên phim</th>
-                                <th>Nội dung AI (tóm tắt)</th>
-                                <th class="text-end">Hành động</th>
+                                <th style="width: 25%;">Tên phim</th>
+                                <th style="width: 60%;">Nội dung AI (tóm tắt)</th>
+                                <th class="text-end" style="width: 15%;">Hành động</th>
                             </tr>
                         </thead>
                         <tbody id="results-body"></tbody>
@@ -88,171 +113,130 @@
             </div>
         </div>
         <div class="card shadow-sm mt-4">
-            <div class="card-header"><h5 class="mb-0">Log chi tiết</h5></div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Log chi tiết</h5>
+                <button class="btn btn-sm btn-outline-danger" id="clear-log-btn"><i class="bi bi-trash"></i> Xóa Log</button>
+            </div>
             <div id="log-container" class="card-body" style="max-height: 250px; overflow-y: auto; font-size: 0.8rem; line-height: 1.5;"></div>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="aiContentModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="aiContentModalLabel">Nội dung AI</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" id="aiContentModalBody">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="aiContentModalLabel">Nội dung AI</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" id="aiContentModalBody" style="white-space: pre-wrap;">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+          </div>
         </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-      </div>
     </div>
-  </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const socket = io();
-    let processedMovies = {}; // Lưu trữ kết quả để lấy nội dung đầy đủ
-
-    const elements = {
-        loadingOverlay: document.getElementById('loading-overlay'),
-        startButton: document.getElementById('startButton'),
-        buttonText: document.getElementById('button-text'),
-        pauseButton: document.getElementById('pauseButton'),
-        stopButton: document.getElementById('stopButton'),
-        logContainer: document.getElementById('log-container'),
-        resultsBody: document.getElementById('results-body'),
-        progressBar: document.getElementById('progress-bar'),
-        statFound: document.getElementById('stat-found'),
-        statSuccess: document.getElementById('stat-success'),
-        statErrors: document.getElementById('stat-errors'),
-        inputs: document.querySelectorAll('#settings-form input, #settings-form select, #settings-form textarea'),
-        aiTarget: document.getElementById('ai-target'),
-        concurrency: document.getElementById('concurrency'),
-        delay: document.getElementById('delay'),
-        aiPrompt: document.getElementById('ai-prompt'),
-        aiContentModal: new bootstrap.Modal(document.getElementById('aiContentModal')),
-        aiContentModalLabel: document.getElementById('aiContentModalLabel'),
-        aiContentModalBody: document.getElementById('aiContentModalBody'),
-    };
-
-    const ui = {
-        renderState(state) {
-            const isRunning = state.status === 'running' || state.status === 'paused';
-            const isPaused = state.status === 'paused';
-
-            elements.startButton.disabled = isRunning;
-            elements.buttonText.textContent = isRunning ? 'Đang chạy...' : 'Bắt đầu';
-            elements.pauseButton.disabled = !isRunning;
-            elements.stopButton.disabled = !isRunning;
-            elements.inputs.forEach(input => input.disabled = isRunning);
-            elements.pauseButton.innerHTML = isPaused ? '<i class="bi bi-play-fill me-1"></i>Tiếp tục' : '<i class="bi bi-pause-fill me-1"></i>Tạm dừng';
-            elements.pauseButton.classList.toggle('btn-warning', !isPaused);
-            elements.pauseButton.classList.toggle('btn-info', isPaused);
-            
-            this.updateProgressBar(state.progress, state.status);
-            elements.logContainer.innerHTML = '';
-            state.logs.forEach(log => this.logToUI(log, false));
-            elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
-            
-            elements.resultsBody.innerHTML = '';
-            processedMovies = {}; // Reset lại danh sách phim đã xử lý
-            state.results.forEach(this.addResultRow);
-            
-            elements.loadingOverlay.style.display = 'none';
+    const config = {
+        socketEventPrefix: 'ai',
+        localStorageKey: 'aiContentSettings',
+        elements: {
+            loadingOverlay: document.getElementById('loading-overlay'),
+            startButton: document.getElementById('startButton'),
+            buttonText: document.getElementById('button-text'),
+            pauseButton: document.getElementById('pauseButton'),
+            stopButton: document.getElementById('stopButton'),
+            logContainer: document.getElementById('log-container'),
+            resultsBody: document.getElementById('results-body'),
+            progressBar: document.getElementById('progress-bar'),
+            statFound: document.getElementById('stat-found'),
+            statSuccess: document.getElementById('stat-success'),
+            statErrors: document.getElementById('stat-errors'),
+            inputs: document.querySelectorAll('#settings-form input, #settings-form select, #settings-form textarea'),
+            aiTarget: document.getElementById('ai-target'),
+            aiModel: document.getElementById('ai-model'),
+            concurrency: document.getElementById('concurrency'),
+            delay: document.getElementById('delay'),
+            systemPrompt: document.getElementById('ai-system-prompt'),
+            userPrompt: document.getElementById('ai-user-prompt'),
+            apiKey: document.getElementById('api-key'),
+            modal: {
+                instance: new bootstrap.Modal(document.getElementById('aiContentModal')),
+                label: document.getElementById('aiContentModalLabel'),
+                body: document.getElementById('aiContentModalBody'),
+            },
+            clearLogButton: document.getElementById('clear-log-btn'),
         },
-        updateProgressBar(progress, status) {
-            const total = progress.total || 0;
-            const percentage = total === 0 ? 0 : Math.round((progress.processed / total) * 100);
-            elements.progressBar.style.width = `${percentage}%`;
-            elements.progressBar.textContent = `${percentage}%`;
-            elements.statFound.textContent = total;
-            elements.statSuccess.textContent = progress.success;
-            elements.statErrors.textContent = progress.errors;
-
-            elements.progressBar.classList.remove('progress-bar-animated', 'bg-success', 'bg-danger');
-            if (status === 'running' || status === 'paused') {
-                elements.progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
-            } else if (status === 'stopped') {
-                elements.progressBar.classList.add('bg-danger');
-            } else if (status === 'idle' && progress.processed > 0 && progress.processed === total) {
-                elements.progressBar.classList.add('bg-success');
+        getSettings: () => ({
+            target: config.elements.aiTarget.value,
+            model: config.elements.aiModel.value,
+            concurrency: parseInt(config.elements.concurrency.value, 10) || 3,
+            delay: parseInt(config.elements.delay.value, 10) || 1000,
+            apiKeys: config.elements.apiKey.value.split('\n').map(k => k.trim()).filter(Boolean),
+            systemPrompt: config.elements.systemPrompt.value,
+            userPrompt: config.elements.userPrompt.value,
+        }),
+        loadSettings: (saved) => {
+            config.elements.aiTarget.value = saved.target || 'all';
+            config.elements.aiModel.value = saved.model || 'gpt-3.5-turbo-1106';
+            config.elements.concurrency.value = saved.concurrency || 3;
+            config.elements.delay.value = saved.delay || 1000;
+            config.elements.apiKey.value = (saved.apiKeys || []).join('\n');
+            if (saved.systemPrompt) config.elements.systemPrompt.value = saved.systemPrompt;
+            if (saved.userPrompt) config.elements.userPrompt.value = saved.userPrompt;
+        },
+        validateOptions: (options) => {
+            if (!options.systemPrompt.trim() || !options.userPrompt.trim()) {
+                alert('Vui lòng nhập đầy đủ System Prompt và User Prompt.');
+                return false;
             }
+            return true;
         },
-        logToUI(data, shouldScroll = true) {
-            const logContainer = elements.logContainer;
-            const isAtBottom = logContainer.scrollTop + logContainer.clientHeight >= logContainer.scrollHeight - 20;
-            const logEntry = document.createElement('div');
-            const typeToClass = { 'info': 'text-info-emphasis', 'success': 'text-success', 'error': 'text-danger', 'warning': 'text-warning' };
-            logEntry.className = typeToClass[data.type] || 'text-muted';
-            logEntry.innerHTML = `[${data.timestamp}] ${data.message}`;
-            logContainer.appendChild(logEntry);
-            if (shouldScroll && isAtBottom) {
-                logContainer.scrollTop = logContainer.scrollHeight;
+        renderResultRow: (movie, processedItems) => {
+            processedItems[movie._id] = movie;
+            const newRow = config.elements.resultsBody.insertRow(0);
+            let summary = 'N/A';
+            try {
+                const contentObj = JSON.parse(movie.ai_content);
+                summary = contentObj.content || 'Không có mô tả.';
+            } catch (e) {
+                summary = movie.ai_content || 'Lỗi định dạng JSON.';
             }
-        },
-        addResultRow(movie) {
-            processedMovies[movie._id] = movie; // Lưu trữ toàn bộ thông tin phim
-            const newRow = elements.resultsBody.insertRow(0);
             newRow.innerHTML = `
                 <td><strong>${movie.name}</strong></td>
-                <td><small>${movie.ai_content ? movie.ai_content.substring(0, 100) + '...' : 'N/A'}</small></td>
+                <td><small>${summary.substring(0, 100).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')}...</small></td>
                 <td class="text-end">
                     <button class="btn btn-sm btn-outline-info view-details-btn" data-movie-id="${movie._id}">
-                        <i class="bi bi-eye-fill"></i> Xem chi tiết
+                        <i class="bi bi-eye-fill"></i> Xem
                     </button>
                 </td>
             `;
+        },
+        handleResultClick: (event, processedItems) => {
+            const target = event.target.closest('.view-details-btn');
+            if (target) {
+                const movieId = target.dataset.movieId;
+                const movie = processedItems[movieId];
+                if (movie) {
+                    config.elements.modal.label.textContent = `Nội dung AI cho: ${movie.name}`;
+                    try {
+                        const contentObj = JSON.parse(movie.ai_content);
+                        config.elements.modal.body.innerHTML = contentObj.content || 'Không có nội dung.';
+                    } catch (e) {
+                        config.elements.modal.body.innerHTML = movie.ai_content;
+                    }
+                    config.elements.modal.instance.show();
+                }
+            }
+        },
+        customSocketEvents: (socket, ui) => {
+            socket.on('ai-movie-processed', ui.addResultRow);
         }
     };
 
-    // Lắng nghe sự kiện click trên toàn bộ bảng kết quả
-    elements.resultsBody.addEventListener('click', (event) => {
-        const target = event.target.closest('.view-details-btn');
-        if (target) {
-            const movieId = target.dataset.movieId;
-            const movie = processedMovies[movieId];
-            if (movie) {
-                elements.aiContentModalLabel.textContent = `Nội dung AI cho: ${movie.name}`;
-                elements.aiContentModalBody.innerHTML = movie.ai_content;
-                elements.aiContentModal.show();
-            }
-        }
-    });
-
-    elements.startButton.addEventListener('click', () => {
-        const options = {
-            target: elements.aiTarget.value,
-            concurrency: parseInt(elements.concurrency.value, 10) || 3,
-            delay: parseInt(elements.delay.value, 10) || 1000,
-            prompt: elements.aiPrompt.value,
-        };
-        if (!options.prompt.trim()) {
-            alert('Vui lòng nhập Prompt AI.');
-            return;
-        }
-        socket.emit('ai:start', options);
-    });
-    elements.pauseButton.addEventListener('click', () => {
-        const isCurrentlyPaused = elements.pauseButton.textContent.trim() === 'Tiếp tục';
-        socket.emit(isCurrentlyPaused ? 'ai:resume' : 'ai:pause');
-    });
-    elements.stopButton.addEventListener('click', () => socket.emit('ai:stop'));
-
-    socket.on('ai-state', ui.renderState.bind(ui));
-    socket.on('ai-log', ui.logToUI.bind(ui));
-    socket.on('ai-progress', (progress) => ui.updateProgressBar(progress, 'running'));
-    socket.on('ai-movie-processed', ui.addResultRow.bind(ui));
-    socket.on('ai-start', (data) => {
-        ui.updateProgressBar({ processed: 0, total: data.total, success: 0, errors: 0 }, 'running');
-    });
-    socket.on('ai-finished', (status) => {
-        socket.emit('ai:get-state');
-    });
-    
-    // Yêu cầu trạng thái ban đầu
-    socket.emit('ai:get-state');
+    createToolInterface(config);
 });
 </script>

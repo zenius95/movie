@@ -10,7 +10,7 @@ const movieRoutes = require('./routes/movieRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const syncControl = require('./scripts/sync');
-const aiControl = require('./scripts/ai_content'); // Thêm dòng này
+const aiControl = require('./scripts/ai_content');
 const { fetchApi } = require('./utils/apiFetcher');
 const expressLayouts = require('express-ejs-layouts');
 
@@ -84,43 +84,26 @@ app.get('/api/nam-phat-hanh', async (req, res) => {
 io.on('connection', (socket) => {
   console.log('Một người dùng đã kết nối');
   
-  // Gửi trạng thái Sync
+  // Trạng thái Sync
   socket.emit('sync-state', syncControl.getState());
-  socket.on('sync:get-state', () => {
-    socket.emit('sync-state', syncControl.getState());
-  });
-
+  socket.on('sync:get-state', () => socket.emit('sync-state', syncControl.getState()));
   socket.on('sync:start', (options) => syncControl.start(io, options));
   socket.on('sync:pause', () => syncControl.pause(io));
   socket.on('sync:resume', () => syncControl.resume(io));
   socket.on('sync:stop', () => syncControl.stop(io));
+  socket.on('sync:clear-log', () => syncControl.clearLog());
 
-  // --- THÊM LOGIC CHO AI CONTENT ---
-  // Gửi trạng thái AI Content
+  // Trạng thái AI Content
   socket.emit('ai-state', aiControl.getState());
-  socket.on('ai:get-state', () => {
-    socket.emit('ai-state', aiControl.getState());
-  });
-
+  socket.on('ai:get-state', () => socket.emit('ai-state', aiControl.getState()));
   socket.on('ai:start', (options) => aiControl.start(io, options));
   socket.on('ai:pause', () => aiControl.pause(io));
   socket.on('ai:resume', () => aiControl.resume(io));
   socket.on('ai:stop', () => aiControl.stop(io));
-  // --- KẾT THÚC ---
+  socket.on('ai:clear-log', () => aiControl.clearLog());
 });
 
 initDb().then(async () => {
-    const { User } = require('./models');
-    const admin = await User.findOne({ where: { username: 'admin' } });
-    if (!admin) {
-        await User.create({
-            username: 'admin',
-            password: 'password',
-            role: 'admin'
-        });
-        console.log('Admin user created with default password "password"');
-    }
-
     server.listen(PORT, () => {
         console.log(`Server is running at http://localhost:${PORT}`);
         console.log(`Admin access: http://localhost:${PORT}/admin`);

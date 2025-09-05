@@ -1,26 +1,106 @@
-{"type":"info","message":"====================","timestamp":"23:46:25"}
-{"type":"info","message":"BẮT ĐẦU TIẾN TRÌNH ĐỒNG BỘ MỚI","timestamp":"23:46:25"}
-{"type":"info","message":"====================","timestamp":"23:46:25"}
-{"type":"info","message":"PHASE 1: Tìm kiếm phim từ danh mục: Phim Mới","timestamp":"23:46:27"}
-{"type":"info","message":"  - Đang quét trang: 1","timestamp":"23:46:27"}
-{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 1.","timestamp":"23:46:27"}
-{"type":"info","message":"  - Đang quét trang: 2","timestamp":"23:46:27"}
-{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 2.","timestamp":"23:46:27"}
-{"type":"info","message":"  - Đang quét trang: 3","timestamp":"23:46:28"}
-{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 3.","timestamp":"23:46:28"}
-{"type":"info","message":"  - Đang quét trang: 4","timestamp":"23:46:28"}
-{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 4.","timestamp":"23:46:28"}
-{"type":"info","message":"  - Đang quét trang: 5","timestamp":"23:46:29"}
-{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 5.","timestamp":"23:46:29"}
-{"type":"info","message":"  - Đang quét trang: 6","timestamp":"23:46:30"}
-{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 6.","timestamp":"23:46:30"}
-{"type":"info","message":"  - Đang quét trang: 7","timestamp":"23:46:30"}
-{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 7.","timestamp":"23:46:30"}
-{"type":"info","message":"  - Đang quét trang: 8","timestamp":"23:46:31"}
-{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 8.","timestamp":"23:46:31"}
-{"type":"info","message":"  - Đang quét trang: 9","timestamp":"23:46:31"}
-{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 9.","timestamp":"23:46:32"}
-{"type":"info","message":"  - Đang quét trang: 10","timestamp":"23:46:32"}
-{"type":"info","message":"    -> Không có phim mới/cập nhật trên trang 10.","timestamp":"23:46:32"}
-{"type":"info","message":"PHASE 1 KẾT THÚC: Tìm thấy 0 phim.","timestamp":"23:46:32"}
-{"type":"success","message":"✅ ĐỒNG BỘ HÓA HOÀN TẤT!","timestamp":"23:46:32"}
+{"type":"info","message":"====================","timestamp":"12:27:59"}
+{"type":"info","message":"BẮT ĐẦU TIẾN TRÌNH ĐỒNG BỘ MỚI","timestamp":"12:27:59"}
+{"type":"info","message":"====================","timestamp":"12:27:59"}
+{"type":"info","message":"PHASE 1: Tìm kiếm phim từ danh mục: Phim Mới","timestamp":"12:28:00"}
+{"type":"info","message":"  - Đang quét trang: 1","timestamp":"12:28:00"}
+{"type":"info","message":"    -> Tìm thấy 24 phim mới/cần cập nhật trên trang 1.","timestamp":"12:28:00"}
+{"type":"info","message":"  - Đang quét trang: 2","timestamp":"12:28:01"}
+{"type":"info","message":"    -> Tìm thấy 24 phim mới/cần cập nhật trên trang 2.","timestamp":"12:28:01"}
+{"type":"info","message":"PHASE 1 KẾT THÚC: Tìm thấy 48 phim.","timestamp":"12:28:01"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Điện Hạ Và Phu Nhân Kamduang\"","timestamp":"12:28:01"}
+{"type":"info","message":"--- Hoàn thành lô 1 / 48 ---","timestamp":"12:28:02"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Yêu Lại Từ Đầu\"","timestamp":"12:28:03"}
+{"type":"info","message":"--- Hoàn thành lô 2 / 48 ---","timestamp":"12:28:03"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Tân Ký Sự Dị Thường Sinh Vật: Khởi Đầu\"","timestamp":"12:28:04"}
+{"type":"info","message":"--- Hoàn thành lô 3 / 48 ---","timestamp":"12:28:05"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Ling Cage Season 2\"","timestamp":"12:28:06"}
+{"type":"info","message":"--- Hoàn thành lô 4 / 48 ---","timestamp":"12:28:06"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Wo De Shixiong Tai Qiang Le\"","timestamp":"12:28:07"}
+{"type":"info","message":"--- Hoàn thành lô 5 / 48 ---","timestamp":"12:28:08"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Fei Ren Zai 3rd Season\"","timestamp":"12:28:09"}
+{"type":"info","message":"--- Hoàn thành lô 6 / 48 ---","timestamp":"12:28:09"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Cầu Vồng Trong Đêm\"","timestamp":"12:28:10"}
+{"type":"info","message":"--- Hoàn thành lô 7 / 48 ---","timestamp":"12:28:10"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Sui Gia Tương Phùng\"","timestamp":"12:28:11"}
+{"type":"info","message":"--- Hoàn thành lô 8 / 48 ---","timestamp":"12:28:12"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Ván Bài Định Mệnh\"","timestamp":"12:28:13"}
+{"type":"info","message":"--- Hoàn thành lô 9 / 48 ---","timestamp":"12:28:13"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Người Thừa Kế Số 1\"","timestamp":"12:28:14"}
+{"type":"info","message":"--- Hoàn thành lô 10 / 48 ---","timestamp":"12:28:15"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Hoa Khôi Cảnh Viên\"","timestamp":"12:28:16"}
+{"type":"info","message":"--- Hoàn thành lô 11 / 48 ---","timestamp":"12:28:17"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Thần Thám Lý Kỳ\"","timestamp":"12:28:18"}
+{"type":"info","message":"--- Hoàn thành lô 12 / 48 ---","timestamp":"12:28:18"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Ba Mươi Chưa Phải Là Hết (Bản Thái)\"","timestamp":"12:28:19"}
+{"type":"info","message":"--- Hoàn thành lô 13 / 48 ---","timestamp":"12:28:20"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Cạm Bẫy Thương Trường\"","timestamp":"12:28:21"}
+{"type":"info","message":"--- Hoàn thành lô 14 / 48 ---","timestamp":"12:28:21"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Tấn Giai Đích Vương Phi\"","timestamp":"12:28:22"}
+{"type":"info","message":"--- Hoàn thành lô 15 / 48 ---","timestamp":"12:28:23"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Sống Trong Một Ngày Suốt Trăm Nghìn Năm\"","timestamp":"12:28:24"}
+{"type":"info","message":"--- Hoàn thành lô 16 / 48 ---","timestamp":"12:28:24"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Tổ Trọng Án Đại Đường\"","timestamp":"12:28:25"}
+{"type":"info","message":"--- Hoàn thành lô 17 / 48 ---","timestamp":"12:28:25"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Hẹn Hò Bạn Tôi\"","timestamp":"12:28:26"}
+{"type":"info","message":"--- Hoàn thành lô 18 / 48 ---","timestamp":"12:28:27"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Dư Tẫn Hành Giả\"","timestamp":"12:28:28"}
+{"type":"info","message":"--- Hoàn thành lô 19 / 48 ---","timestamp":"12:28:28"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Clevatess\"","timestamp":"12:28:29"}
+{"type":"info","message":"--- Hoàn thành lô 20 / 48 ---","timestamp":"12:28:30"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Vùng Đất Lửa (Phần 2)\"","timestamp":"12:28:31"}
+{"type":"info","message":"--- Hoàn thành lô 21 / 48 ---","timestamp":"12:28:31"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Từ Đỉnh Cao Đến Vực Sâu\"","timestamp":"12:28:32"}
+{"type":"info","message":"--- Hoàn thành lô 22 / 48 ---","timestamp":"12:28:34"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Chiến Tướng\"","timestamp":"12:28:35"}
+{"type":"info","message":"--- Hoàn thành lô 23 / 48 ---","timestamp":"12:28:35"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Tiên Sủng\"","timestamp":"12:28:36"}
+{"type":"info","message":"--- Hoàn thành lô 24 / 48 ---","timestamp":"12:28:37"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Thành Phố Kamitsubaki Đang Được Xây Dựng\"","timestamp":"12:28:38"}
+{"type":"info","message":"--- Hoàn thành lô 25 / 48 ---","timestamp":"12:28:38"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Ma Pháp Sư Thuộc Tính Nước\"","timestamp":"12:28:39"}
+{"type":"info","message":"--- Hoàn thành lô 26 / 48 ---","timestamp":"12:28:40"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Martin\"","timestamp":"12:28:41"}
+{"type":"info","message":"--- Hoàn thành lô 27 / 48 ---","timestamp":"12:28:42"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Cuộc Chiến Trên Cầu\"","timestamp":"12:28:43"}
+{"type":"info","message":"--- Hoàn thành lô 28 / 48 ---","timestamp":"12:28:43"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Bagheera\"","timestamp":"12:28:44"}
+{"type":"info","message":"--- Hoàn thành lô 29 / 48 ---","timestamp":"12:28:45"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Tín Hiệu Vũ Trụ\"","timestamp":"12:28:46"}
+{"type":"info","message":"--- Hoàn thành lô 30 / 48 ---","timestamp":"12:28:46"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Singham Again\"","timestamp":"12:28:47"}
+{"type":"info","message":"--- Hoàn thành lô 31 / 48 ---","timestamp":"12:28:48"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Secret Level\"","timestamp":"12:28:49"}
+{"type":"info","message":"--- Hoàn thành lô 32 / 48 ---","timestamp":"12:28:50"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Trong Tông Môn Trừ Ta Ra Tất Cả Đều Là Gián Điệp\"","timestamp":"12:28:51"}
+{"type":"info","message":"--- Hoàn thành lô 33 / 48 ---","timestamp":"12:28:51"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Phàm Nhân Tu Tiên\"","timestamp":"12:28:52"}
+{"type":"info","message":"--- Hoàn thành lô 34 / 48 ---","timestamp":"12:28:53"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Cặp Đôi Tu Hú Phần 2\"","timestamp":"12:28:54"}
+{"type":"info","message":"--- Hoàn thành lô 35 / 48 ---","timestamp":"12:28:54"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Bắt Đầu Hàng Vỉa Hè Bán Đại Lực\"","timestamp":"12:28:55"}
+{"type":"info","message":"--- Hoàn thành lô 36 / 48 ---","timestamp":"12:28:56"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Tôi và các cậu bé nhà Walter (Phần 2)\"","timestamp":"12:28:57"}
+{"type":"info","message":"--- Hoàn thành lô 37 / 48 ---","timestamp":"12:28:58"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Đếm ngược: Canelo vs. Crawford\"","timestamp":"12:28:59"}
+{"type":"info","message":"--- Hoàn thành lô 38 / 48 ---","timestamp":"12:28:59"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Bà Hoàng Cự Tháp\"","timestamp":"12:29:00"}
+{"type":"info","message":"--- Hoàn thành lô 39 / 48 ---","timestamp":"12:29:00"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Hồ Sơ Tội Lỗi\"","timestamp":"12:29:01"}
+{"type":"info","message":"--- Hoàn thành lô 40 / 48 ---","timestamp":"12:29:02"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Bản Năng\"","timestamp":"12:29:03"}
+{"type":"info","message":"--- Hoàn thành lô 41 / 48 ---","timestamp":"12:29:03"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Thầy Hay Trò Giỏi\"","timestamp":"12:29:04"}
+{"type":"info","message":"--- Hoàn thành lô 42 / 48 ---","timestamp":"12:29:05"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Về Đội\"","timestamp":"12:29:06"}
+{"type":"info","message":"--- Hoàn thành lô 43 / 48 ---","timestamp":"12:29:07"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Tín Hiệu Trái Tim (Bản Trung - Mùa 8)\"","timestamp":"12:29:08"}
+{"type":"info","message":"--- Hoàn thành lô 44 / 48 ---","timestamp":"12:29:08"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Nghĩa Địa Của Người Sống\"","timestamp":"12:29:09"}
+{"type":"info","message":"--- Hoàn thành lô 45 / 48 ---","timestamp":"12:29:10"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Star Trek: Thế Giới Mới Lạ (Phần 3)\"","timestamp":"12:29:11"}
+{"type":"info","message":"--- Hoàn thành lô 46 / 48 ---","timestamp":"12:29:12"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Thánh Ma Túy\"","timestamp":"12:29:13"}
+{"type":"info","message":"--- Hoàn thành lô 47 / 48 ---","timestamp":"12:29:13"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Tử Dạ Quy\"","timestamp":"12:29:14"}
+{"type":"info","message":"--- Hoàn thành lô 48 / 48 ---","timestamp":"12:29:14"}
+{"type":"success","message":"✅ ĐỒNG BỘ HÓA HOÀN TẤT!","timestamp":"12:29:15"}

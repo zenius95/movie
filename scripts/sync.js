@@ -49,7 +49,7 @@ const log = (io, type, message) => {
         fs.writeFileSync(LOG_FILE_PATH, newLines.join('\n') + '\n');
     }
 
-    console.log(`[${type.toUpperCase()}] ${message}`);
+    console.log(`[SYNC][${type.toUpperCase()}] ${message}`);
     if(io) io.emit('sync-log', logEntry);
 };
 
@@ -59,7 +59,6 @@ const control = {
             log(io, 'error', 'Một tiến trình đồng bộ khác đang chạy. Vui lòng đợi.');
             return;
         }
-        // Xóa file log cũ và reset state khi bắt đầu tiến trình mới
         if (fs.existsSync(LOG_FILE_PATH)) {
             fs.writeFileSync(LOG_FILE_PATH, '');
         }
@@ -95,12 +94,20 @@ const control = {
             const previousStatus = syncState.status;
             syncState.status = 'stopped';
             log(io, 'error', 'Tiến trình đã được yêu cầu dừng lại.');
+            io.emit('sync-state', syncState); // Gửi trạng thái ngay lập tức
             if (previousStatus === 'paused') {
                 io.emit('sync-finished', syncState.status);
             }
         }
     },
     getState: () => syncState,
+    // --- HÀM MỚI ---
+    clearLog: () => {
+        if (fs.existsSync(LOG_FILE_PATH)) {
+            fs.writeFileSync(LOG_FILE_PATH, '');
+        }
+        syncState.logs = [];
+    }
 };
 
 async function checkStatus(io) {
@@ -347,10 +354,11 @@ async function processMovieBySlug(slug, movieName, io) {
         
         await t.commit();
         const movieResult = {
+            _id: movieData._id,
             name: movieData.name,
             thumb: localThumbPath,
-            status: action, // Trạng thái đồng bộ: 'created' hoặc 'updated'
-            movie_status: movieData.status, // Trạng thái của phim: 'ongoing', 'completed'
+            status: action,
+            movie_status: movieData.status,
             year: movieData.year,
             categories: movieData.category.map(c => c.name).join(', '),
             countries: movieData.country.map(c => c.name).join(', ')
