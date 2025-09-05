@@ -7,6 +7,13 @@
         flex-direction: column; color: white;
     }
     .spinner-border { width: 3rem; height: 3rem; }
+    /* Tùy chỉnh z-index cho modal của Summernote */
+    .note-editor.note-frame .note-modal { z-index: 1060; }
+    /* Thêm CSS cho màu sắc log */
+    #log-container .log-info { color: #0dcaf0; }
+    #log-container .log-success { color: #198754; }
+    #log-container .log-warning { color: #ffc107; }
+    #log-container .log-error { color: #dc3545; }
 </style>
 
 <div id="loading-overlay">
@@ -45,6 +52,14 @@
                         <div class="col"><label for="concurrency" class="form-label">Chạy đồng thời</label><input type="number" class="form-control form-control-sm" id="concurrency" value="3"></div>
                         <div class="col"><label for="delay" class="form-label">Delay mỗi lô (ms)</label><input type="number" class="form-control form-control-sm" id="delay" value="1000"></div>
                     </div>
+                     <div class="mb-3">
+                        <label for="post_status" class="form-label">Trạng thái sau khi tạo</label>
+                        <select id="post_status" class="form-select form-select-sm">
+                            <option value="">Không đổi</option>
+                            <option value="Publish">Publish</option>
+                            <option value="Draft">Draft</option>
+                        </select>
+                    </div>
                     <div class="mb-3">
                         <label for="api-key" class="form-label">OpenAI API Key(s)</label>
                         <textarea class="form-control form-control-sm" id="api-key" rows="3" placeholder="Nhập mỗi key một dòng..."></textarea>
@@ -55,10 +70,9 @@
                     <h6><i class="bi bi-file-text"></i> Cài đặt Prompt</h6>
                     <div class="mb-3">
                         <label for="ai-system-prompt" class="form-label">System Prompt</label>
-                        <textarea class="form-control form-control-sm" id="ai-system-prompt" rows="4">Bạn là một trợ lý AI chuyên tạo ra nội dung HTML và đóng gói nó trong một cấu trúc JSON. Mọi phản hồi của bạn BẮT BUỘC phải là một đối tượng JSON hợp lệ và không chứa bất kỳ ký tự nào khác bên ngoài nó.
-
+                        <textarea class="form-control form-control-sm" id="ai-system-prompt" rows="4">Bạn là một trợ lý AI chuyên tạo ra nội dung HTML và đóng gói nó trong một cấu trúc JSON.
+Mọi phản hồi của bạn BẮT BUỘC phải là một đối tượng JSON hợp lệ và không chứa bất kỳ ký tự nào khác bên ngoài nó.
 Đối tượng JSON phải tuân thủ nghiêm ngặt cấu trúc sau: {"content": "chuỗi_html_cua_ban"}.
-
 Giá trị của khóa "content" phải là một chuỗi (string) duy nhất chứa mã HTML.</textarea>
                     </div>
                     <div class="mb-3">
@@ -123,120 +137,198 @@ Giá trị của khóa "content" phải là một chuỗi (string) duy nhất ch
 </div>
 
 <div class="modal fade" id="aiContentModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="aiContentModalLabel">Nội dung AI</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
-          <div class="modal-body" id="aiContentModalBody" style="white-space: pre-wrap;">
+          <div class="modal-body">
+              <textarea id="aiContentEditor"></textarea>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button type="button" class="btn btn-primary" id="saveAiContentBtn">Lưu thay đổi</button>
           </div>
         </div>
     </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const config = {
-        socketEventPrefix: 'ai',
-        localStorageKey: 'aiContentSettings',
-        elements: {
-            loadingOverlay: document.getElementById('loading-overlay'),
-            startButton: document.getElementById('startButton'),
-            buttonText: document.getElementById('button-text'),
-            pauseButton: document.getElementById('pauseButton'),
-            stopButton: document.getElementById('stopButton'),
-            logContainer: document.getElementById('log-container'),
-            resultsBody: document.getElementById('results-body'),
-            progressBar: document.getElementById('progress-bar'),
-            statFound: document.getElementById('stat-found'),
-            statSuccess: document.getElementById('stat-success'),
-            statErrors: document.getElementById('stat-errors'),
-            inputs: document.querySelectorAll('#settings-form input, #settings-form select, #settings-form textarea'),
-            aiTarget: document.getElementById('ai-target'),
-            aiModel: document.getElementById('ai-model'),
-            concurrency: document.getElementById('concurrency'),
-            delay: document.getElementById('delay'),
-            systemPrompt: document.getElementById('ai-system-prompt'),
-            userPrompt: document.getElementById('ai-user-prompt'),
-            apiKey: document.getElementById('api-key'),
-            modal: {
-                instance: new bootstrap.Modal(document.getElementById('aiContentModal')),
-                label: document.getElementById('aiContentModalLabel'),
-                body: document.getElementById('aiContentModalBody'),
+    document.addEventListener('DOMContentLoaded', () => {
+        const config = {
+            socketEventPrefix: 'ai',
+            localStorageKey: 'aiContentSettings',
+            elements: {
+                loadingOverlay: document.getElementById('loading-overlay'),
+                startButton: document.getElementById('startButton'),
+                buttonText: document.getElementById('button-text'),
+                pauseButton: document.getElementById('pauseButton'),
+                stopButton: document.getElementById('stopButton'),
+                logContainer: document.getElementById('log-container'),
+                resultsBody: document.getElementById('results-body'),
+                progressBar: document.getElementById('progress-bar'),
+                statFound: document.getElementById('stat-found'),
+                statSuccess: document.getElementById('stat-success'),
+                statErrors: document.getElementById('stat-errors'),
+                inputs: document.querySelectorAll('#settings-form input, #settings-form select, #settings-form textarea'),
+                aiTarget: document.getElementById('ai-target'),
+                aiModel: document.getElementById('ai-model'),
+                concurrency: document.getElementById('concurrency'),
+                delay: document.getElementById('delay'),
+                systemPrompt: document.getElementById('ai-system-prompt'),
+                userPrompt: document.getElementById('ai-user-prompt'),
+                apiKey: document.getElementById('api-key'),
+                modal: {
+                    instance: new bootstrap.Modal(document.getElementById('aiContentModal')),
+                    label: document.getElementById('aiContentModalLabel'),
+                    editor: document.getElementById('aiContentEditor'),
+                    saveBtn: document.getElementById('saveAiContentBtn')
+                },
+                clearLogButton: document.getElementById('clear-log-btn'),
             },
-            clearLogButton: document.getElementById('clear-log-btn'),
-        },
-        getSettings: () => ({
-            target: config.elements.aiTarget.value,
-            model: config.elements.aiModel.value,
-            concurrency: parseInt(config.elements.concurrency.value, 10) || 3,
-            delay: parseInt(config.elements.delay.value, 10) || 1000,
-            apiKeys: config.elements.apiKey.value.split('\n').map(k => k.trim()).filter(Boolean),
-            systemPrompt: config.elements.systemPrompt.value,
-            userPrompt: config.elements.userPrompt.value,
-        }),
-        loadSettings: (saved) => {
-            config.elements.aiTarget.value = saved.target || 'all';
-            config.elements.aiModel.value = saved.model || 'gpt-3.5-turbo-1106';
-            config.elements.concurrency.value = saved.concurrency || 3;
-            config.elements.delay.value = saved.delay || 1000;
-            config.elements.apiKey.value = (saved.apiKeys || []).join('\n');
-            if (saved.systemPrompt) config.elements.systemPrompt.value = saved.systemPrompt;
-            if (saved.userPrompt) config.elements.userPrompt.value = saved.userPrompt;
-        },
-        validateOptions: (options) => {
-            if (!options.systemPrompt.trim() || !options.userPrompt.trim()) {
-                alert('Vui lòng nhập đầy đủ System Prompt và User Prompt.');
-                return false;
-            }
-            return true;
-        },
-        renderResultRow: (movie, processedItems) => {
-            processedItems[movie._id] = movie;
-            const newRow = config.elements.resultsBody.insertRow(0);
-            let summary = 'N/A';
-            try {
-                const contentObj = JSON.parse(movie.ai_content);
-                summary = contentObj.content || 'Không có mô tả.';
-            } catch (e) {
-                summary = movie.ai_content || 'Lỗi định dạng JSON.';
-            }
-            newRow.innerHTML = `
-                <td><strong>${movie.name}</strong></td>
-                <td><small>${summary.substring(0, 100).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')}...</small></td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-outline-info view-details-btn" data-movie-id="${movie._id}">
-                        <i class="bi bi-eye-fill"></i> Xem
-                    </button>
-                </td>
-            `;
-        },
-        handleResultClick: (event, processedItems) => {
-            const target = event.target.closest('.view-details-btn');
-            if (target) {
-                const movieId = target.dataset.movieId;
-                const movie = processedItems[movieId];
-                if (movie) {
-                    config.elements.modal.label.textContent = `Nội dung AI cho: ${movie.name}`;
-                    try {
-                        const contentObj = JSON.parse(movie.ai_content);
-                        config.elements.modal.body.innerHTML = contentObj.content || 'Không có nội dung.';
-                    } catch (e) {
-                        config.elements.modal.body.innerHTML = movie.ai_content;
-                    }
-                    config.elements.modal.instance.show();
+            getSettings: () => ({
+                target: config.elements.aiTarget.value,
+                model: config.elements.aiModel.value,
+                concurrency: parseInt(config.elements.concurrency.value, 10) || 3,
+                delay: parseInt(config.elements.delay.value, 10) || 1000,
+                apiKeys: config.elements.apiKey.value.split('\n').map(k => k.trim()).filter(Boolean),
+                systemPrompt: config.elements.systemPrompt.value,
+                userPrompt: config.elements.userPrompt.value,
+                post_status: document.getElementById('post_status').value,
+            }),
+            loadSettings: (saved) => {
+                config.elements.aiTarget.value = saved.target || 'all';
+                config.elements.aiModel.value = saved.model || 'gpt-3.5-turbo-1106';
+                config.elements.concurrency.value = saved.concurrency || 3;
+                config.elements.delay.value = saved.delay || 1000;
+                config.elements.apiKey.value = (saved.apiKeys || []).join('\n');
+                if (saved.systemPrompt) config.elements.systemPrompt.value = saved.systemPrompt;
+                if (saved.userPrompt) config.elements.userPrompt.value = saved.userPrompt;
+                document.getElementById('post_status').value = saved.post_status || '';
+            },
+            validateOptions: (options) => {
+                if (!options.systemPrompt.trim() || !options.userPrompt.trim()) {
+                    alert('Vui lòng nhập đầy đủ System Prompt và User Prompt.');
+                    return false;
                 }
-            }
-        },
-        customSocketEvents: (socket, ui) => {
-            socket.on('ai-movie-processed', ui.addResultRow);
-        }
-    };
+                return true;
+            },
+            renderResultRow: (movie, processedItems) => {
+                processedItems[movie._id] = movie;
+                const newRow = config.elements.resultsBody.insertRow(0);
+                let summary = 'N/A';
+                let rawContent = movie.ai_content || '';
+                try {
+                    const contentObj = JSON.parse(rawContent);
+                    summary = contentObj.content || 'Không có mô tả.';
+                } catch (e) {
+                    summary = rawContent;
+                }
+                newRow.innerHTML = `
+                    <td><strong>${movie.name}</strong></td>
+                    <td><small>${summary.substring(0, 100).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')}...</small></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-info view-details-btn" data-movie-id="${movie._id}">
+                            <i class="bi bi-eye-fill"></i> Xem & Sửa
+                        </button>
+                    </td>
+                `;
+            },
+            handleResultClick: (event, processedItems) => {
+                const target = event.target.closest('.view-details-btn');
+                if (target) {
+                    const movieId = target.dataset.movieId;
+                    const movie = processedItems[movieId];
+                    if (movie) {
+                        config.elements.modal.label.textContent = `Sửa nội dung AI cho: ${movie.name}`;
+                        config.elements.modal.saveBtn.dataset.movieId = movieId;
+                        
+                        let contentToEdit = '';
+                        try {
+                            const contentObj = JSON.parse(movie.ai_content);
+                            contentToEdit = contentObj.content || movie.ai_content;
+                        } catch (e) {
+                            contentToEdit = movie.ai_content || '';
+                        }
 
-    createToolInterface(config);
-});
+                        $(config.elements.modal.editor).summernote('destroy');
+                        $(config.elements.modal.editor).val(contentToEdit);
+                        $(config.elements.modal.editor).summernote({
+                            placeholder: 'Nhập nội dung AI...',
+                            tabsize: 2,
+                            height: 400,
+                            toolbar: [
+                                ['style', ['style']],
+                                ['font', ['bold', 'underline', 'clear']],
+                                ['color', ['color']],
+                                ['para', ['ul', 'ol', 'paragraph']],
+                                ['table', ['table']],
+                                ['insert', ['link', 'picture', 'video']],
+                                ['view', ['fullscreen', 'codeview', 'help']]
+                            ]
+                        });
+                        
+                        config.elements.modal.instance.show();
+                    }
+                }
+            },
+            customSocketEvents: (socket, ui) => {
+                 const logToUI = (data) => {
+                    const logContainer = config.elements.logContainer;
+                    const logEntry = document.createElement('div');
+                    const typeClass = {
+                        info: 'log-info',
+                        success: 'log-success',
+                        warning: 'log-warning',
+                        error: 'log-error'
+                    };
+                    logEntry.className = typeClass[data.type] || 'text-muted';
+                    logEntry.textContent = `[${data.timestamp}] ${data.message}`;
+                    logContainer.appendChild(logEntry);
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                };
+
+                socket.off('ai-log'); // Gỡ listener cũ để tránh bị trùng lặp
+                socket.on('ai-log', logToUI);
+
+                socket.on('ai-movie-processed', ui.addResultRow);
+
+                config.elements.modal.saveBtn.addEventListener('click', async (e) => {
+                    const button = e.currentTarget;
+                    const movieId = button.dataset.movieId;
+                    if (!movieId) return;
+
+                    const newContentHTML = $(config.elements.modal.editor).summernote('code');
+                    const newContentJSON = JSON.stringify({ content: newContentHTML });
+
+                    button.disabled = true;
+                    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang lưu...';
+
+                    try {
+                        const response = await fetch(`/admin/movies/update-ai-content/${movieId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ai_content: newContentJSON })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            ui.processedItems[movieId].ai_content = newContentJSON;
+                            alert('Lưu thành công!');
+                            config.elements.modal.instance.hide();
+                        } else {
+                            throw new Error(result.message || 'Lỗi không xác định.');
+                        }
+                    } catch (error) {
+                        alert(`Lưu thất bại: ${error.message}`);
+                    } finally {
+                        button.disabled = false;
+                        button.innerHTML = 'Lưu thay đổi';
+                    }
+                });
+            }
+        };
+
+        createToolInterface(config);
+    });
 </script>

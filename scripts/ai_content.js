@@ -62,14 +62,12 @@ const control = {
             io.emit('ai-state', contentState);
         }
     },
-    stop: (io) => {
-        if (contentState.status === 'running' || contentState.status === 'paused') {
-            const previousStatus = contentState.status;
-            contentState.status = 'stopped';
-            log(io, 'Tiến trình đã dừng theo yêu cầu.', 'error');
-            io.emit('ai-state', contentState);
-            if (previousStatus === 'paused') io.emit('ai-finished', contentState.status);
-        }
+    stop: (io, reason) => {
+        if (contentState.status === 'stopped') return;
+        contentState.status = 'stopped';
+        log(io, reason || 'Tiến trình đã dừng theo yêu cầu.', 'error');
+        io.emit('ai-state', contentState);
+        io.emit('ai-finished', 'stopped');
     },
     getState: () => contentState,
     clearLog: () => {
@@ -79,13 +77,15 @@ const control = {
 };
 
 async function startGeneration(io, options) {
-    const { target, concurrency, delay, systemPrompt, userPrompt, apiKeys, model } = options;
+    const { target, concurrency, delay, systemPrompt, userPrompt, apiKeys, model, post_status } = options;
+    
+    const effectiveApiKeys = apiKeys.length > 0 ? apiKeys : [process.env.OPENAI_API_KEY].filter(Boolean);
+    if (effectiveApiKeys.length === 0) {
+        return control.stop(io, '❌ Lỗi: Không có OpenAI API Key. Vui lòng cung cấp key trong cài đặt hoặc file .env.');
+    }
+
     let currentKeyIndex = 0;
-
     try {
-        const effectiveApiKeys = apiKeys.length > 0 ? apiKeys : [process.env.OPENAI_API_KEY].filter(Boolean);
-        if (effectiveApiKeys.length === 0) throw new Error('Không tìm thấy OpenAI API Key nào được cung cấp.');
-
         let whereCondition = {};
         if (target === 'empty') {
             whereCondition.ai_content = { [Op.or]: [null, ''] };
@@ -99,8 +99,9 @@ async function startGeneration(io, options) {
         });
 
         if (moviesToProcess.length === 0) {
-            log(io, 'Không tìm thấy phim nào phù hợp.', 'warning');
-            throw new Error('No movies found');
+            log(io, 'Không tìm thấy phim nào phù hợp để xử lý.', 'warning');
+            contentState.status = 'idle';
+            return io.emit('ai-finished', 'completed');
         }
 
         log(io, `PHASE 1 KẾT THÚC: Tìm thấy ${moviesToProcess.length} phim.`);
@@ -115,17 +116,20 @@ async function startGeneration(io, options) {
                 let success = false;
                 let result = null;
                 while (!success) {
-                    if (currentKeyIndex >= effectiveApiKeys.length) throw new Error('Tất cả API key đều lỗi hoặc hết hạn mức.');
+                    if (contentState.status === 'stopped') return null;
+                    if (currentKeyIndex >= effectiveApiKeys.length) {
+                        throw new Error('Tất cả API key đều không hợp lệ hoặc đã hết hạn mức.');
+                    }
                     try {
-                        result = await processMovie(movie, systemPrompt, userPrompt, effectiveApiKeys[currentKeyIndex], model, io);
-                        success = true;
+                        result = await processMovie(movie, systemPrompt, userPrompt, effectiveApiKeys[currentKeyIndex], model, io, post_status);
+                        success = true; // Success, exit while loop
                     } catch (error) {
                         const statusCode = error.response ? error.response.status : null;
                         if (statusCode === 401 || statusCode === 429) {
                             log(io, `Key API thứ ${currentKeyIndex + 1} gặp lỗi. Thử key tiếp theo...`, 'warning');
                             currentKeyIndex++;
                         } else {
-                            throw error;
+                            throw error; // Other error, re-throw to outer catch
                         }
                     }
                 }
@@ -137,61 +141,82 @@ async function startGeneration(io, options) {
                     contentState.progress.success++;
                     contentState.results.push(result);
                     io.emit('ai-movie-processed', result);
-                } else {
+                } else if(contentState.status !== 'stopped') {
                     contentState.progress.errors++;
                 }
             });
             
             contentState.progress.processed += batch.length;
             io.emit('ai-progress', contentState.progress);
+
+            if (contentState.status === 'stopped') break; // Exit for loop if stopped
+
             log(io, `--- Hoàn thành lô ${Math.floor(i / concurrency) + 1} / ${Math.ceil(moviesToProcess.length / concurrency)} ---`);
             if (delay > 0) await sleep(delay);
         }
         
-        log(io, '✅ TIẾN TRÌNH HOÀN TẤT!', 'success');
+        if (contentState.status !== 'stopped') {
+            log(io, '✅ TIẾN TRÌNH HOÀN TẤT!', 'success');
+            contentState.status = 'idle';
+            io.emit('ai-finished', 'completed');
+        }
 
     } catch (error) {
-        if (error.message !== 'AI process stopped by user') {
-            log(io, `❌ Đã xảy ra lỗi nghiêm trọng: ${error.message}`, 'error');
-        }
-        control.stop(io);
-    } finally {
         if (contentState.status !== 'stopped') {
-            contentState.status = 'idle';
+            const errorMessage = (error && error.message) ? error.message : 'Lỗi không xác định.';
+            if (errorMessage !== 'AI process stopped by user') {
+                control.stop(io, `❌ Đã xảy ra lỗi nghiêm trọng: ${errorMessage}`);
+            }
         }
-        io.emit('ai-finished', contentState.status);
     }
 }
 
-async function processMovie(movie, systemPrompt, userPrompt, apiKey, model, io) {
-    try {
-        await checkStatus();
-        log(io, `  -> Đang xử lý phim: "${movie.name}" với model: ${model}`);
+async function processMovie(movie, systemPrompt, userPrompt, apiKey, model, io, post_status) {
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            await checkStatus();
+            log(io, `  -> Đang xử lý phim: "${movie.name}" với model: ${model} (Lần thử ${attempt})`);
 
-        const finalUserPrompt = replaceVariablesInPrompt(userPrompt, movie.toJSON());
-        
-        const openai = new OpenAI({ apiKey });
-        const completion = await openai.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: finalUserPrompt }
-            ],
-            model: model,
-            response_format: { "type": "json_object" },
-        });
-        
-        let resultJson = completion.choices[0].message.content;
-        if (!resultJson) throw new Error('API không trả về kết quả.');
-        
-        await Movie.update({ ai_content: resultJson }, { where: { _id: movie._id } });
-        return {
-            _id: movie._id,
-            name: movie.name,
-            status: 'updated',
-            ai_content: resultJson 
-        };
-    } catch (error) {
-        throw error;
+            const finalUserPrompt = replaceVariablesInPrompt(userPrompt, movie.toJSON());
+            
+            const openai = new OpenAI({ apiKey });
+            const completion = await openai.chat.completions.create({
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: finalUserPrompt }
+                ],
+                model: model,
+                response_format: { "type": "json_object" },
+            });
+            
+            let resultJson = completion.choices[0].message.content;
+            if (!resultJson) throw new Error('API không trả về kết quả.');
+            
+            const updateData = { ai_content: resultJson };
+            if (post_status) {
+                updateData.status = post_status;
+            }
+
+            await Movie.update(updateData, { where: { _id: movie._id } });
+            return {
+                _id: movie._id,
+                name: movie.name,
+                status: 'updated',
+                ai_content: resultJson 
+            };
+        } catch (error) {
+            if (error.response && (error.response.status === 401 || error.response.status === 429)) {
+                throw error;
+            }
+            
+            log(io, `Lỗi xử lý phim "${movie.name}" (lần thử ${attempt}): ${error.message}`, 'warning');
+            if (attempt === MAX_RETRIES) {
+                log(io, `Bỏ qua phim "${movie.name}" sau ${MAX_RETRIES} lần thử thất bại.`, 'error');
+                return null;
+            }
+            await sleep(2000);
+        }
     }
 }
 

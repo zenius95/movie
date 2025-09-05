@@ -160,6 +160,23 @@ exports.uploadImage = async (req, res) => {
     }
 };
 
+// HÀM MỚI: CẬP NHẬT NỘI DUNG AI
+exports.updateAiContent = async (req, res) => {
+    try {
+        const movie = await Movie.findByPk(req.params.id);
+        if (!movie) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy phim.' });
+        }
+        
+        await movie.update({ ai_content: req.body.ai_content });
+        
+        res.json({ success: true, message: 'Cập nhật nội dung AI thành công!' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật nội dung AI.' });
+    }
+};
+
 // ===============================================
 // QUẢN LÝ TẬP PHIM
 // ===============================================
@@ -351,7 +368,6 @@ exports.createUser = async (req, res) => {
     }
 };
 
-// --- HÀM MỚI: CẬP NHẬT USER ---
 exports.updateUser = async (req, res) => {
     try {
         const { username, email, password, role } = req.body;
@@ -363,7 +379,6 @@ exports.updateUser = async (req, res) => {
 
         const updateData = { username, email, role };
 
-        // Chỉ cập nhật mật khẩu nếu người dùng nhập mật khẩu mới
         if (password && password.trim() !== '') {
             updateData.password = password;
         }
@@ -376,11 +391,9 @@ exports.updateUser = async (req, res) => {
     }
 };
 
-// --- HÀM MỚI: XÓA USER ---
 exports.deleteUser = async (req, res) => {
     try {
         const userIdToDelete = req.params.id;
-        // Ngăn không cho admin tự xóa chính mình
         if (req.session.user.id == userIdToDelete) {
             return res.status(400).send('Bạn không thể tự xóa tài khoản của mình.');
         }
@@ -391,16 +404,6 @@ exports.deleteUser = async (req, res) => {
         console.error(error);
         res.status(500).send('Lỗi khi xóa người dùng.');
     }
-};
-
-// ===============================================
-// TRANG ĐỒNG BỘ DỮ LIỆU
-// ===============================================
-exports.showSyncPage = (req, res) => {
-    res.render('pages/admin/sync', {
-        title: 'Đồng bộ dữ liệu',
-        layout: 'layouts/admin'
-    });
 };
 
 // ===============================================

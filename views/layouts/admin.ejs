@@ -6,14 +6,21 @@
     <title>Admin - <%= title %></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote.min.css" rel="stylesheet">
+
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <style>
-        body { display: flex;
-min-height: 100vh; }
-        .sidebar { width: 280px; flex-shrink: 0;
- }
-        .content { flex-grow: 1;
- }
+        body { display: flex; min-height: 100vh; }
+        .sidebar { width: 280px; flex-shrink: 0; }
+        .content { flex-grow: 1; }
     </style>
+
+
 </head>
 <body class="bg-dark-subtle">
     <%- include('../partials/admin_sidebar') %>
@@ -25,8 +32,11 @@ min-height: 100vh; }
         </main>
     </div>
     
-    <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote.min.js"></script>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script src="/js/tool_ui.js"></script>
 </body>
 </html>

@@ -101,7 +101,6 @@ const control = {
         }
     },
     getState: () => syncState,
-    // --- HÀM MỚI ---
     clearLog: () => {
         if (fs.existsSync(LOG_FILE_PATH)) {
             fs.writeFileSync(LOG_FILE_PATH, '');
@@ -126,9 +125,9 @@ async function checkStatus(io) {
 
 async function startSync(io, options) {
     const { 
-        sync_type, sync_value, maxPages, delayPages, 
+        sync_type, sync_value, maxPages, limit, delayPages, 
         delayBatches, concurrency, sync_value_text,
-        category, country, year, sort_field, sort_type
+        category, country, year, sort_field, sort_type, post_status
     } = options;
     
     try {
@@ -184,7 +183,7 @@ async function startSync(io, options) {
         while (currentPage <= totalPages && (maxPages === 0 || currentPage <= maxPages)) {
             await checkStatus(io);
             
-            let apiUrl = `${basePath}?page=${currentPage}`;
+            let apiUrl = `${basePath}?page=${currentPage}&limit=${limit}`;
             if (sync_type === 'tim-kiem') apiUrl += `&keyword=${encodeURIComponent(sync_value)}`;
             if (filterQueryString) apiUrl += `&${filterQueryString}`;
             
@@ -226,7 +225,7 @@ async function startSync(io, options) {
             for (let i = 0; i < moviesToProcess.length; i += concurrency) {
                 await checkStatus(io);
                 const batch = moviesToProcess.slice(i, i + concurrency);
-                const results = await Promise.all(batch.map(movie => processMovieBySlug(movie.slug, movie.name, io)));
+                const results = await Promise.all(batch.map(movie => processMovieBySlug(movie.slug, movie.name, io, post_status)));
                 results.forEach(result => {
                     if (result) {
                         if (result.status !== 'skipped') syncState.progress.success++;
@@ -260,117 +259,136 @@ async function startSync(io, options) {
     }
 }
 
-async function processMovieBySlug(slug, movieName, io) {
-    await checkStatus(io);
-    log(io, 'info', `  -> Đang xử lý phim: "${movieName}"`);
+async function processMovieBySlug(slug, movieName, io, post_status) {
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            await checkStatus(io);
+            log(io, 'info', `  -> Đang xử lý phim: "${movieName}" (Lần thử ${attempt})`);
 
-    const [movieDetail, peopleDetail, imageDetail] = await Promise.all([
-        fetchApi(`/api/phim/${slug}`),
-        fetchApi(`/api/phim/${slug}/peoples`),
-        fetchApi(`/api/phim/${slug}/images`)
-    ]);
+            const [movieDetail, peopleDetail, imageDetail] = await Promise.all([
+                fetchApi(`/api/phim/${slug}`),
+                fetchApi(`/api/phim/${slug}/peoples`),
+                fetchApi(`/api/phim/${slug}/images`)
+            ]);
 
-    if (!movieDetail || !movieDetail.data || !movieDetail.data.item) {
-        log(io, 'error', `Lỗi: Không thể lấy chi tiết phim "${movieName}"`);
-        return null;
-    }
-    
-    const movieData = movieDetail.data.item;
-    const peopleData = (peopleDetail && peopleDetail.data && peopleDetail.data.peoples) ? peopleDetail.data.peoples : [];
-    const imageData = (imageDetail && imageDetail.data && imageDetail.data.images) ? imageDetail.data.images : [];
-    
-    const ophimCdnUrl = movieDetail.data.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live';
-    const tmdbCdnUrl = imageDetail?.data?.image_sizes?.backdrop?.original || 'https://image.tmdb.org/t/p/original';
-
-    const apiModifiedTime = new Date(movieData.modified.time);
-
-    const movieImageDir = path.join(__dirname, `../public/images/${movieData.slug}`);
-    if (!fs.existsSync(movieImageDir)) fs.mkdirSync(movieImageDir, { recursive: true });
-    
-    const posterDestPath = path.join(movieImageDir, `poster${path.extname(movieData.poster_url) || '.jpg'}`);
-    await downloadImage(`${ophimCdnUrl}/uploads/movies/${movieData.poster_url}`, posterDestPath, io);
-    const localPosterPath = `/images/${movieData.slug}/${path.basename(posterDestPath)}`;
-
-    const thumbDestPath = path.join(movieImageDir, `thumb${path.extname(movieData.thumb_url) || '.jpg'}`);
-    await downloadImage(`${ophimCdnUrl}/uploads/movies/${movieData.thumb_url}`, thumbDestPath, io);
-    const localThumbPath = `/images/${movieData.slug}/${path.basename(thumbDestPath)}`;
-
-    const t = await sequelize.transaction();
-    try {
-        if (movieData.year) {
-            await Year.findOrCreate({ where: { year: movieData.year }, transaction: t });
-        }
-
-        const images = imageData.map(img => `${tmdbCdnUrl}${img.file_path}`);
-
-        const moviePayload = {
-            _id: movieData._id, name: movieData.name, origin_name: movieData.origin_name,
-            slug: movieData.slug, content: movieData.content, type: movieData.type,
-            status: movieData.status, thumb_url: localThumbPath, poster_url: localPosterPath,
-            trailer_url: movieData.trailer_url, time: movieData.time, episode_current: movieData.episode_current,
-            episode_total: movieData.episode_total, quality: movieData.quality, lang: movieData.lang,
-            year: movieData.year, view: movieData.view, chieurap: movieData.chieurap,
-            modified_at: apiModifiedTime, tmdb: movieData.tmdb, imdb: movieData.imdb,
-            images: images
-        };
-        const [movieInstance, created] = await Movie.upsert(moviePayload, { transaction: t, returning: true });
-        const action = created ? 'created' : 'updated';
-        
-        if (movieData.category) {
-            const categoryInstances = await Promise.all(movieData.category.map(cat => Category.findOrCreate({ where: { id: cat.id }, defaults: cat, transaction: t }).then(res => res[0])));
-            await movieInstance.setCategories(categoryInstances, { transaction: t });
-        }
-        if (movieData.country) {
-            const countryInstances = await Promise.all(movieData.country.map(c => Country.findOrCreate({ where: { id: c.id }, defaults: c, transaction: t }).then(res => res[0])));
-            await movieInstance.setCountries(countryInstances, { transaction: t });
-        }
-
-        if (movieData.episodes) {
-            const episodesData = movieData.episodes.flatMap(server => server.server_data.map(ep => ({ movie_id: movieData._id, server_name: server.server_name, name: ep.name, slug: ep.slug, link_embed: ep.link_embed, link_m3u8: ep.link_m3u8 })));
-            if (episodesData.length > 0) {
-                await Episode.destroy({ where: { movie_id: movieData._id }, transaction: t });
-                await Episode.bulkCreate(episodesData, { transaction: t });
+            if (!movieDetail || !movieDetail.data || !movieDetail.data.item) {
+                throw new Error(`Không thể lấy chi tiết phim "${movieName}"`);
             }
+            
+            const movieData = movieDetail.data.item;
+            const peopleData = (peopleDetail && peopleDetail.data && peopleDetail.data.peoples) ? peopleDetail.data.peoples : [];
+            const imageData = (imageDetail && imageDetail.data && imageDetail.data.images) ? imageDetail.data.images : [];
+            
+            const ophimCdnUrl = movieDetail.data.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live';
+            const tmdbCdnUrl = imageDetail?.data?.image_sizes?.backdrop?.original || 'https://image.tmdb.org/t/p/original';
+
+            const apiModifiedTime = new Date(movieData.modified.time);
+
+            const movieImageDir = path.join(__dirname, `../public/images/${movieData.slug}`);
+            if (!fs.existsSync(movieImageDir)) fs.mkdirSync(movieImageDir, { recursive: true });
+            
+            const posterDestPath = path.join(movieImageDir, `poster${path.extname(movieData.poster_url) || '.jpg'}`);
+            await downloadImage(`${ophimCdnUrl}/uploads/movies/${movieData.poster_url}`, posterDestPath, io);
+            const localPosterPath = `/images/${movieData.slug}/${path.basename(posterDestPath)}`;
+
+            const thumbDestPath = path.join(movieImageDir, `thumb${path.extname(movieData.thumb_url) || '.jpg'}`);
+            await downloadImage(`${ophimCdnUrl}/uploads/movies/${movieData.thumb_url}`, thumbDestPath, io);
+            const localThumbPath = `/images/${movieData.slug}/${path.basename(thumbDestPath)}`;
+
+            const t = await sequelize.transaction();
+            try {
+                if (movieData.year) {
+                    await Year.findOrCreate({ where: { year: movieData.year }, transaction: t });
+                }
+
+                const images = imageData.map(img => `${tmdbCdnUrl}${img.file_path}`);
+
+                const moviePayload = {
+                    _id: movieData._id, name: movieData.name, origin_name: movieData.origin_name,
+                    slug: movieData.slug, content: movieData.content, type: movieData.type,
+                    movie_status: movieData.status, // Ghi vào cột mới
+                    thumb_url: localThumbPath, poster_url: localPosterPath,
+                    trailer_url: movieData.trailer_url, time: movieData.time, episode_current: movieData.episode_current,
+                    episode_total: movieData.episode_total, quality: movieData.quality, lang: movieData.lang,
+                    year: movieData.year, view: movieData.view, chieurap: movieData.chieurap,
+                    modified_at: apiModifiedTime, tmdb: movieData.tmdb, imdb: movieData.imdb,
+                    images: images
+                };
+                
+                if (post_status) {
+                    moviePayload.status = post_status;
+                }
+
+                const [movieInstance, created] = await Movie.upsert(moviePayload, { transaction: t, returning: true });
+                const action = created ? 'created' : 'updated';
+                
+                if (movieData.category) {
+                    const categoryInstances = await Promise.all(movieData.category.map(cat => Category.findOrCreate({ where: { id: cat.id }, defaults: cat, transaction: t }).then(res => res[0])));
+                    await movieInstance.setCategories(categoryInstances, { transaction: t });
+                }
+                if (movieData.country) {
+                    const countryInstances = await Promise.all(movieData.country.map(c => Country.findOrCreate({ where: { id: c.id }, defaults: c, transaction: t }).then(res => res[0])));
+                    await movieInstance.setCountries(countryInstances, { transaction: t });
+                }
+
+                if (movieData.episodes) {
+                    const episodesData = movieData.episodes.flatMap(server => server.server_data.map(ep => ({ movie_id: movieData._id, server_name: server.server_name, name: ep.name, slug: ep.slug, link_embed: ep.link_embed, link_m3u8: ep.link_m3u8 })));
+                    if (episodesData.length > 0) {
+                        await Episode.destroy({ where: { movie_id: movieData._id }, transaction: t });
+                        await Episode.bulkCreate(episodesData, { transaction: t });
+                    }
+                }
+                
+                if (peopleData.length > 0) {
+                    const peoplePayload = peopleData.map(p => ({
+                        tmdb_people_id: p.tmdb_people_id, name: p.name, original_name: p.original_name,
+                        gender: p.gender, profile_path: p.profile_path, known_for_department: p.known_for_department,
+                        also_known_as: p.also_known_as
+                    }));
+                    await Person.bulkCreate(peoplePayload, { 
+                        updateOnDuplicate: ["name", "original_name", "gender", "profile_path", "known_for_department", "also_known_as"],
+                        transaction: t 
+                    });
+                    const moviePersonAssociations = peopleData.map(p => ({
+                        movie_id: movieInstance._id,
+                        person_id: p.tmdb_people_id,
+                        character: p.character
+                    }));
+                    await MoviePerson.destroy({ where: { movie_id: movieInstance._id }, transaction: t });
+                    await MoviePerson.bulkCreate(moviePersonAssociations, { transaction: t });
+                }
+                
+                await t.commit();
+                const movieResult = {
+                    _id: movieData._id,
+                    name: movieData.name,
+                    thumb: localThumbPath,
+                    status: action,
+                    movie_status: movieData.status,
+                    year: movieData.year,
+                    categories: movieData.category.map(c => c.name).join(', '),
+                    countries: movieData.country.map(c => c.name).join(', ')
+                };
+                return movieResult; // Success
+            } catch (error) {
+                if (t && !t.finished) {
+                    await t.rollback();
+                }
+                throw error; // Ném lỗi để vòng lặp retry bắt
+            }
+        } catch (error) {
+            log(io, 'error', `Lỗi xử lý phim "${movieName}" (lần thử ${attempt}): ${error.message}`);
+            if (attempt === MAX_RETRIES) {
+                log(io, 'error', `Bỏ qua phim "${movieName}" sau ${MAX_RETRIES} lần thử thất bại.`);
+                return null; // Thất bại sau tất cả các lần thử
+            }
+            if (error.message === 'Sync stopped by user') throw error;
+            await sleep(2000); // Đợi 2 giây trước khi thử lại
         }
-        
-        if (peopleData.length > 0) {
-            const peoplePayload = peopleData.map(p => ({
-                tmdb_people_id: p.tmdb_people_id, name: p.name, original_name: p.original_name,
-                gender: p.gender, profile_path: p.profile_path, known_for_department: p.known_for_department,
-                also_known_as: p.also_known_as
-            }));
-            await Person.bulkCreate(peoplePayload, { 
-                updateOnDuplicate: ["name", "original_name", "gender", "profile_path", "known_for_department", "also_known_as"],
-                transaction: t 
-            });
-            const moviePersonAssociations = peopleData.map(p => ({
-                movie_id: movieInstance._id,
-                person_id: p.tmdb_people_id,
-                character: p.character
-            }));
-            await MoviePerson.destroy({ where: { movie_id: movieInstance._id }, transaction: t });
-            await MoviePerson.bulkCreate(moviePersonAssociations, { transaction: t });
-        }
-        
-        await t.commit();
-        const movieResult = {
-            _id: movieData._id,
-            name: movieData.name,
-            thumb: localThumbPath,
-            status: action,
-            movie_status: movieData.status,
-            year: movieData.year,
-            categories: movieData.category.map(c => c.name).join(', '),
-            countries: movieData.country.map(c => c.name).join(', ')
-        };
-        return movieResult;
-    } catch (error) {
-        await t.rollback();
-        log(io, 'error', `Giao dịch thất bại cho phim "${movieName}". Đã rollback. Lỗi: ${error.message}`);
-        if (error.message === 'Sync stopped by user') throw error;
-        return null;
     }
 }
+
 
 async function downloadImage(url, destPath, io, retries = 3) {
     if (!url || !(url.startsWith('http') || url.startsWith('https'))) {

@@ -1,6 +1,5 @@
 // File: controllers/movieController.js
-
-const { Movie, Person, Category, Country, Episode } = require('../models');
+const { Movie, Category, Country, Episode, Person } = require('../models');
 
 // Đảm bảo hàm này được export với từ khóa 'exports'
 exports.getHomePage = async (req, res) => {
@@ -33,22 +32,10 @@ exports.getMovieDetail = async (req, res) => {
         const movie = await Movie.findOne({
             where: { slug: req.params.slug },
             include: [
-                { 
-                    model: Category, 
-                    through: { attributes: [] } // Bỏ qua bảng trung gian khi trả về
-                },
-                { 
-                    model: Country, 
-                    through: { attributes: [] } 
-                },
-                { 
-                    model: Episode, 
-                    order: [['name', 'ASC']] 
-                },
-                {
-                    model: Person, // <<--- THÊM DÒNG NÀY ĐỂ LẤY DIỄN VIÊN
-                    through: { attributes: ['character'] } // Lấy kèm cả vai diễn 'character'
-                }
+                { model: Category, through: { attributes: [] } },
+                { model: Country, through: { attributes: [] } },
+                { model: Episode, order: [['name', 'ASC']] },
+                { model: Person, through: { attributes: ['character'] } }
             ]
         });
 
@@ -56,6 +43,7 @@ exports.getMovieDetail = async (req, res) => {
             return res.status(404).send('Movie not found');
         }
 
+        // Không cần phân tích JSON nữa vì dữ liệu là HTML
         res.render('pages/movieDetail', {
             title: movie.name,
             movie

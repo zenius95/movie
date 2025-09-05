@@ -22,7 +22,7 @@
         .actors-list .actor-name { font-weight: bold; }
         .actors-list .character-name { font-size: 0.85em; color: #666; }
         .trailer-button { 
-            display: inline-block; 
+            display: inline-block;
             margin-top: 15px; 
             padding: 10px 20px; 
             background-color: #c00; 
@@ -49,7 +49,7 @@
                 </a>
             </div>
             <div class="movie-details">
-                <p><strong>Trạng thái:</strong> <%= movie.status %></p>
+                <p><strong>Trạng thái:</strong> <%= movie.movie_status %></p>
                 <p><strong>Loại phim:</strong> <%= movie.type %></p>
                 <p><strong>Tập hiện tại:</strong> <%= movie.episode_current %></p>
                 <p><strong>Tổng số tập:</strong> <%= movie.episode_total %></p>
@@ -71,10 +71,10 @@
                 <div class="movie-meta" style="margin-top: 10px;">
                     <strong>Quốc gia:</strong>
                      <% if (movie.Countries && movie.Countries.length > 0) { %>
-                        <% movie.Countries.forEach(country => { %>
+                         <% movie.Countries.forEach(country => { %>
                             <span><%= country.name %></span>
                         <% }) %>
-                    <% } %>
+                     <% } %>
                 </div>
 
                 <% if (movie.trailer_url) { %>
@@ -91,7 +91,7 @@
         <div class="movie-actors">
              <h2>Diễn viên</h2>
              <div class="actors-list">
-                <% if (movie.People && movie.People.length > 0) { %>
+                 <% if (movie.People && movie.People.length > 0) { %>
                     <% movie.People.forEach(person => { %>
                         <div class="actor">
                             <img src="https://image.tmdb.org/t/p/w185<%= person.profile_path %>" alt="<%= person.name %>" onerror="this.onerror=null; this.src='/images/default_avatar.png';">

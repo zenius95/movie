@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const auth = require('../middlewares/auth');
-const multer = require('multer'); // <-- THÊM DÒNG NÀY
-// Cấu hình Multer để lưu file tải lên vào thư mục 'uploads'
+const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
 router.use(auth.isLoggedIn);
@@ -15,11 +14,10 @@ router.get('/movies', adminController.showMovies);
 router.get('/movies/edit/:id', adminController.showEditMovieForm);
 router.post('/movies/edit/:id', adminController.updateMovie);
 router.post('/movies/delete/:id', adminController.deleteMovie);
-
-// === THÊM ROUTES MỚI CHO ẢNH ===
-// Route để xử lý việc tải lên ảnh (poster, thumb)
 router.post('/movies/edit/:id/upload-image', upload.single('imageFile'), adminController.uploadImage);
-// === KẾT THÚC THÊM ROUTES MỚI ===
+
+// THÊM ROUTE MỚI ĐỂ CẬP NHẬT NỘI DUNG AI
+router.post('/movies/update-ai-content/:id', adminController.updateAiContent);
 
 // Episode Routes
 router.post('/episodes', adminController.createEpisode);
@@ -45,12 +43,10 @@ router.post('/years/delete/:year', adminController.deleteYear);
 // User Routes
 router.get('/users', auth.isAdmin, adminController.showUsers);
 router.post('/users', auth.isAdmin, adminController.createUser);
-
 router.post('/users/edit/:id', auth.isAdmin, adminController.updateUser);
 router.post('/users/delete/:id', auth.isAdmin, adminController.deleteUser);
 
 router.get('/sync', adminController.showSyncPage);
-
 router.get('/ai-content', adminController.showAiContentPage);
 
 module.exports = router;

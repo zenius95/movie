@@ -1,6 +1,3 @@
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
-
 <form action="/admin/movies/edit/<%= movie._id %>" method="POST">
     <div class="row g-4">
         <div class="col-lg-8">
@@ -10,6 +7,11 @@
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-tab-pane" type="button" role="tab">
                                 <i class="bi bi-info-circle me-1"></i> Thông tin chung
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="ai-content-tab" data-bs-toggle="tab" data-bs-target="#ai-content-tab-pane" type="button" role="tab">
+                                <i class="bi bi-robot me-1"></i> Nội dung AI
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -43,11 +45,18 @@
                             </div>
                             <div class="mb-3">
                                 <label for="content" class="form-label">Nội dung</label>
-                                <textarea class="form-control" id="content" name="content" rows="8"><%= movie.content %></textarea>
+                                <textarea class="form-control border" id="content" name="content" rows="15"><%- movie.content %></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="trailer_url" class="form-label">URL Trailer (Youtube)</label>
                                 <input type="text" class="form-control" id="trailer_url" name="trailer_url" value="<%= movie.trailer_url %>">
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="ai-content-tab-pane" role="tabpanel">
+                             <div class="mb-3">
+                                <label for="ai_content" class="form-label">Nội dung do AI tạo</label>
+                                <textarea class="form-control" id="ai_content" name="ai_content" rows="15"><%- movie.ai_content %></textarea>
                             </div>
                         </div>
 
@@ -96,8 +105,21 @@
                                 Ảnh backdrop được tự động đồng bộ từ API và không thể thêm hay xóa thủ công tại đây.
                             </div>
                             <div class="row g-2">
-                                <% if (movie.images && movie.images.length > 0) { %>
-                                    <% movie.images.forEach(imageUrl => { %>
+                                <%
+                                    let images = [];
+                                    if (movie.images) {
+                                        try {
+                                            images = typeof movie.images === 'string' ? JSON.parse(movie.images) : movie.images;
+                                            if (!Array.isArray(images)) {
+                                                images = [];
+                                            }
+                                        } catch (e) {
+                                            images = [];
+                                        }
+                                    }
+                                %>
+                                <% if (images.length > 0) { %>
+                                    <% images.forEach(imageUrl => { %>
                                         <div class="col-md-4">
                                             <img src="<%= imageUrl %>" class="img-fluid rounded" alt="Backdrop">
                                         </div>
@@ -131,10 +153,17 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-6 mb-3">
-                            <label for="status" class="form-label">Trạng thái</label>
+                            <label for="movie_status" class="form-label">Trạng thái (API)</label>
+                            <select name="movie_status" id="movie_status" class="form-select">
+                                <option value="ongoing" <%= movie.movie_status === 'ongoing' ? 'selected' : '' %>>Đang chiếu</option>
+                                <option value="completed" <%= movie.movie_status === 'completed' ? 'selected' : '' %>>Hoàn thành</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label for="status" class="form-label">Trạng thái (Hệ thống)</label>
                             <select name="status" id="status" class="form-select">
-                                <option value="ongoing" <%= movie.status === 'ongoing' ? 'selected' : '' %>>Đang chiếu</option>
-                                <option value="completed" <%= movie.status === 'completed' ? 'selected' : '' %>>Hoàn thành</option>
+                                <option value="Draft" <%= movie.status === 'Draft' ? 'selected' : '' %>>Draft</option>
+                                <option value="Publish" <%= movie.status === 'Publish' ? 'selected' : '' %>>Publish</option>
                             </select>
                         </div>
                         <div class="col-6 mb-3">
@@ -200,7 +229,6 @@
                 </div>
             </div>
             
-            
             <div class="card shadow-sm mb-4">
                 <div class="card-header">Ảnh Thumbnail</div>
                 <div class="card-body">
@@ -258,13 +286,27 @@
   </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    $(document).ready(function() {
+    jQuery(document).ready(function($) {
+        // Khởi tạo các plugin sau khi DOM đã sẵn sàng
         $('#categories, #countries, #year').select2({
             theme: "bootstrap-5",
             placeholder: "Chọn..."
         });
-    });
+
+        $('#content, #ai_content').summernote({
+            placeholder: 'Nhập nội dung...',
+            tabsize: 2,
+            height: 300,
+            toolbar: [
+                ['style', ['style']],
+                ['font', ['bold', 'underline', 'clear']],
+                ['color', ['color']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['table', ['table']],
+                ['insert', ['link', 'picture', 'video']],
+                ['view', ['fullscreen', 'codeview', 'help']]
+            ]
+        });
+    })
 </script>

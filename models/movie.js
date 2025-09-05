@@ -18,18 +18,20 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         },
         content: {
-            type: DataTypes.TEXT
+            type: DataTypes.TEXT // Trả về TEXT để lưu HTML
         },
-        // --- THÊM MỚI ---
         ai_content: {
-            type: DataTypes.TEXT
+            type: DataTypes.TEXT // Trả về TEXT để lưu HTML
         },
-        // --- KẾT THÚC THÊM MỚI ---
         type: {
             type: DataTypes.STRING
         },
-        status: {
+        movie_status: {
             type: DataTypes.STRING
+        },
+        status: {
+            type: DataTypes.STRING,
+            defaultValue: 'Draft'
         },
         thumb_url: {
             type: DataTypes.STRING

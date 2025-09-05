@@ -10,6 +10,7 @@
                     <h6>Tùy chọn</h6>
                     <div class="row g-2 mb-3">
                         <div class="col"><label for="maxPages" class="form-label">Giới hạn trang (0=all)</label><input type="number" class="form-control form-control-sm" id="maxPages" value="0"></div>
+                        <div class="col"><label for="limit" class="form-label">Phim/Trang</label><input type="number" class="form-control form-control-sm" id="limit" value="24"></div>
                         <div class="col"><label for="concurrency" class="form-label">Đồng thời</label><input type="number" class="form-control form-control-sm" id="concurrency" value="3"></div>
                     </div>
                     <div class="row g-2 mb-3">
@@ -61,6 +62,14 @@
                                 <option value="asc">Tăng dần</option>
                             </select>
                         </div>
+                    </div>
+                     <div class="mb-3">
+                        <label for="post_status" class="form-label">Trạng thái sau khi đồng bộ</label>
+                        <select id="post_status" class="form-select form-select-sm">
+                            <option value="">Không đổi</option>
+                            <option value="Publish">Publish</option>
+                            <option value="Draft">Draft</option>
+                        </select>
                     </div>
                 </div>
                 <div class="mt-auto">
@@ -156,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedOption = syncToolConfig.elements.syncValueSelect.options[syncToolConfig.elements.syncValueSelect.selectedIndex];
             return {
                 maxPages: parseInt(document.getElementById('maxPages').value, 10) || 0,
+                limit: parseInt(document.getElementById('limit').value, 10) || 24,
                 delayPages: parseInt(document.getElementById('delayPages').value, 10) || 300,
                 delayBatches: parseInt(document.getElementById('delayBatches').value, 10) || 1000,
                 concurrency: parseInt(document.getElementById('concurrency').value, 10) || 3,
@@ -167,14 +177,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 year: syncToolConfig.elements.yearFilter.value,
                 sort_field: syncToolConfig.elements.sortField.value,
                 sort_type: syncToolConfig.elements.sortType.value,
+                post_status: document.getElementById('post_status').value,
             };
         },
         loadSettings: (saved) => {
             document.getElementById('maxPages').value = saved.hasOwnProperty('maxPages') ? saved.maxPages : 0;
+            document.getElementById('limit').value = saved.hasOwnProperty('limit') ? saved.limit : 24;
             document.getElementById('delayPages').value = saved.hasOwnProperty('delayPages') ? saved.delayPages : 300;
             document.getElementById('delayBatches').value = saved.hasOwnProperty('delayBatches') ? saved.delayBatches : 1000;
             document.getElementById('concurrency').value = saved.hasOwnProperty('concurrency') ? saved.concurrency : 3;
             syncToolConfig.elements.syncType.value = saved.sync_type || 'danh-muc';
+            document.getElementById('post_status').value = saved.post_status || '';
         },
         validateOptions: (options) => {
             if (!options.sync_value) {
@@ -188,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const newRow = syncToolConfig.elements.resultsBody.insertRow(0);
             const syncStatusClass = movie.status === 'created' ? 'text-bg-success' : 'text-bg-warning';
             const movieStatusClass = movie.movie_status === 'completed' ? 'text-bg-info' : 'text-bg-primary';
-
             newRow.innerHTML = `
                 <td><img src="${movie.thumb}" alt="thumb" style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px;"></td>
                 <td>${movie.name}</td>
@@ -210,7 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 { value: 'phim-bo-hoan-thanh', text: 'Phim Bộ Hoàn Thành' },
                 { value: 'phim-sap-chieu', text: 'Phim Sắp Chiếu' }
             ];
-
             async function populateSelect(selectElement, url, valueKey, nameKey, isSourceData = false, addAllOption = true) {
                 try {
                     const response = await fetch(url);

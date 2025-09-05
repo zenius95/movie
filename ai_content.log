@@ -1,6 +1,16 @@
-{"type":"info","message":"BẮT ĐẦU TẠO NỘI DUNG AI","timestamp":"12:31:33"}
-{"type":"info","message":"PHASE 1: Đang tìm phim trong CSDL...","timestamp":"12:31:33"}
-{"type":"info","message":"PHASE 1 KẾT THÚC: Tìm thấy 48 phim.","timestamp":"12:31:33"}
-{"type":"info","message":"  -> Đang xử lý phim: \"Tử Dạ Quy\" với model: gpt-4o","timestamp":"12:31:33"}
-{"type":"warning","message":"Tiến trình đã tạm dừng.","timestamp":"12:31:36"}
-{"type":"info","message":"--- Hoàn thành lô 1 / 48 ---","timestamp":"12:31:45"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Dũng sĩ otaku béo\" với model: gpt-3.5-turbo-1106 (Lần thử 2)","timestamp":"15:50:05"}
+{"type":"warning","message":"Lỗi xử lý phim \"Dũng sĩ otaku béo\" (lần thử 2): 401 Incorrect API key provided: sk-xxxxx*******************************xxxx. You can find your API key at https://platform.openai.com/account/api-keys.","timestamp":"15:50:05"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Dũng sĩ otaku béo\" với model: gpt-3.5-turbo-1106 (Lần thử 3)","timestamp":"15:50:07"}
+{"type":"warning","message":"Lỗi xử lý phim \"Dũng sĩ otaku béo\" (lần thử 3): 401 Incorrect API key provided: sk-xxxxx*******************************xxxx. You can find your API key at https://platform.openai.com/account/api-keys.","timestamp":"15:50:08"}
+{"type":"error","message":"Bỏ qua phim \"Dũng sĩ otaku béo\" sau 3 lần thử thất bại.","timestamp":"15:50:08"}
+{"type":"info","message":"--- Hoàn thành lô 6 / 100 ---","timestamp":"15:50:08"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Mục Thần Ký\" với model: gpt-3.5-turbo-1106 (Lần thử 1)","timestamp":"15:50:09"}
+{"type":"warning","message":"Lỗi xử lý phim \"Mục Thần Ký\" (lần thử 1): 401 Incorrect API key provided: sk-xxxxx*******************************xxxx. You can find your API key at https://platform.openai.com/account/api-keys.","timestamp":"15:50:09"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Mục Thần Ký\" với model: gpt-3.5-turbo-1106 (Lần thử 2)","timestamp":"15:50:11"}
+{"type":"warning","message":"Lỗi xử lý phim \"Mục Thần Ký\" (lần thử 2): 401 Incorrect API key provided: sk-xxxxx*******************************xxxx. You can find your API key at https://platform.openai.com/account/api-keys.","timestamp":"15:50:11"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Mục Thần Ký\" với model: gpt-3.5-turbo-1106 (Lần thử 3)","timestamp":"15:50:13"}
+{"type":"warning","message":"Lỗi xử lý phim \"Mục Thần Ký\" (lần thử 3): 401 Incorrect API key provided: sk-xxxxx*******************************xxxx. You can find your API key at https://platform.openai.com/account/api-keys.","timestamp":"15:50:13"}
+{"type":"error","message":"Bỏ qua phim \"Mục Thần Ký\" sau 3 lần thử thất bại.","timestamp":"15:50:13"}
+{"type":"info","message":"--- Hoàn thành lô 7 / 100 ---","timestamp":"15:50:13"}
+{"type":"info","message":"  -> Đang xử lý phim: \"Kẻ Vô Danh 2\" với model: gpt-3.5-turbo-1106 (Lần thử 1)","timestamp":"15:50:15"}
+{"type":"warning","message":"Lỗi xử lý phim \"Kẻ Vô Danh 2\" (lần thử 1): 401 Incorrect API key provided: sk-xxxxx*******************************xxxx. You can find your API key at https://platform.openai.com/account/api-keys.","timestamp":"15:50:15"}

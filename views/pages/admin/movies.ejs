@@ -14,6 +14,8 @@
                     <th>Ảnh</th>
                     <th>Tên phim</th>
                     <th>Năm</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="text-center">AI</th>
                     <th>Cập nhật</th>
                     <th>Hành động</th>
                 </tr>
@@ -24,6 +26,18 @@
                         <td><img src="<%= movie.thumb_url %>" alt="<%= movie.name %>" width="40" height="60" style="object-fit: cover;"></td>
                         <td><%= movie.name %></td>
                         <td><span class="badge text-bg-secondary"><%= movie.year %></span></td>
+                        <td class="text-center">
+                            <% if (movie.status === 'Publish') { %>
+                                <span class="badge text-bg-success">Publish</span>
+                            <% } else { %>
+                                <span class="badge text-bg-secondary">Draft</span>
+                            <% } %>
+                        </td>
+                        <td class="text-center">
+                            <% if (movie.ai_content && movie.ai_content.trim() !== '') { %>
+                                <i class="bi bi-robot text-success" title="Đã có nội dung AI"></i>
+                            <% } %>
+                        </td>
                         <td><%= new Date(movie.modified_at).toLocaleDateString('vi-VN') %></td>
                         <td>
                             <div class="d-flex gap-2">
