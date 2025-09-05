@@ -1,67 +1,247 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>Danh sách phim</h3>
-    <form action="/admin/movies" method="GET" class="d-flex">
-        <input class="form-control me-2" type="search" placeholder="Tìm kiếm phim..." name="search" value="<%= searchQuery %>">
-        <button class="btn btn-outline-success" type="submit">Tìm</button>
-    </form>
-</div>
-
-<div class="card">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead>
-                <tr>
-                    <th>Ảnh</th>
-                    <th>Tên phim</th>
-                    <th>Năm</th>
-                    <th class="text-center">Trạng thái</th>
-                    <th class="text-center">AI</th>
-                    <th>Cập nhật</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                <% movies.forEach(movie => { %>
-                    <tr>
-                        <td><img src="<%= movie.thumb_url %>" alt="<%= movie.name %>" width="40" height="60" style="object-fit: cover;"></td>
-                        <td><%= movie.name %></td>
-                        <td><span class="badge text-bg-secondary"><%= movie.year %></span></td>
-                        <td class="text-center">
-                            <% if (movie.status === 'Publish') { %>
-                                <span class="badge text-bg-success">Publish</span>
-                            <% } else { %>
-                                <span class="badge text-bg-secondary">Draft</span>
-                            <% } %>
-                        </td>
-                        <td class="text-center">
-                            <% if (movie.ai_content && movie.ai_content.trim() !== '') { %>
-                                <i class="bi bi-robot text-success" title="Đã có nội dung AI"></i>
-                            <% } %>
-                        </td>
-                        <td><%= new Date(movie.modified_at).toLocaleDateString('vi-VN') %></td>
-                        <td>
-                            <div class="d-flex gap-2">
-                                <a href="/admin/movies/edit/<%= movie._id %>" class="btn btn-sm btn-warning">Sửa</a>
-                                <form action="/admin/movies/delete/<%= movie._id %>" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa phim này?');">
-                                    <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                <% }) %>
-            </tbody>
-        </table>
+    <div class="d-flex align-items-center gap-2">
+        <button type="submit" form="bulk-delete-form" class="btn btn-sm btn-danger" id="bulk-delete-btn" disabled>
+            <i class="bi bi-trash"></i> Xóa đã chọn
+        </button>
+        <form action="/admin/movies" method="GET" class="d-flex">
+            <input class="form-control me-2 form-control-sm" type="search" placeholder="Tìm kiếm phim..." name="search" value="<%= searchQuery %>">
+            <button class="btn btn-sm btn-outline-success" type="submit">Tìm</button>
+        </form>
     </div>
 </div>
 
+<div id="bulk-action-bar" class="alert alert-info d-none" role="alert">
+    <span id="selection-count"></span> phim trên trang này đã được chọn.
+    <a href="#" id="select-all-db" class="alert-link">Chọn tất cả <%= movieCount %> phim.</a>
+</div>
+<div id="bulk-action-bar-all" class="alert alert-primary d-none" role="alert">
+    Tất cả <%= movieCount %> phim đã được chọn.
+    <a href="#" id="clear-selection" class="alert-link">Bỏ chọn.</a>
+</div>
+
+<form action="/admin/movies/bulk-delete" method="POST" id="bulk-delete-form">
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 1%;"><input class="form-check-input" type="checkbox" id="select-all-checkbox"></th>
+                        <th>Ảnh</th>
+                        <th>Tên phim</th>
+                        <th>Năm</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th class="text-center">AI</th>
+                        <th>Cập nhật</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% movies.forEach(movie => { %>
+                        <tr>
+                            <td><input class="form-check-input movie-checkbox" type="checkbox" name="movieIds" value="<%= movie._id %>"></td>
+                            <td><img src="<%= movie.thumb_url %>" alt="<%= movie.name %>" width="40" height="60" style="object-fit: cover;"></td>
+                            <td><%= movie.name %></td>
+                            <td><span class="badge text-bg-secondary"><%= movie.year %></span></td>
+                            <td class="text-center">
+                                <% if (movie.status === 'Publish') { %>
+                                    <span class="badge text-bg-success">Publish</span>
+                                <% } else { %>
+                                    <span class="badge text-bg-secondary">Draft</span>
+                                <% } %>
+                            </td>
+                            <td class="text-center">
+                                <% if (movie.ai_content && movie.ai_content.trim() !== '') { %>
+                                    <i class="bi bi-robot text-success" title="Đã có nội dung AI"></i>
+                                <% } %>
+                            </td>
+                            <td><%= new Date(movie.modified_at).toLocaleDateString('vi-VN') %></td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="/admin/movies/edit/<%= movie._id %>" class="btn btn-sm btn-warning">Sửa</a>
+                                    <form action="/admin/movies/delete/<%= movie._id %>" method="POST" class="delete-form d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+
 <% if (totalPages > 1) { %>
 <nav class="mt-4">
-  <ul class="pagination justify-content-center">
-    <% for(let i = 1; i <= totalPages; i++) { %>
-      <li class="page-item <%= i === currentPage ? 'active' : '' %>">
-        <a class="page-link" href="/admin/movies?page=<%= i %>&search=<%= searchQuery %>"><%= i %></a>
-      </li>
-    <% } %>
-  </ul>
+    <ul class="pagination justify-content-center">
+        <%
+            const maxPagesToShow = 5;
+            let startPage, endPage;
+            if (totalPages <= maxPagesToShow) {
+                startPage = 1;
+                endPage = totalPages;
+            } else {
+                const maxPagesBeforeCurrent = Math.floor(maxPagesToShow / 2);
+                const maxPagesAfterCurrent = Math.ceil(maxPagesToShow / 2) - 1;
+                if (currentPage <= maxPagesBeforeCurrent) {
+                    startPage = 1;
+                    endPage = maxPagesToShow;
+                } else if (currentPage + maxPagesAfterCurrent >= totalPages) {
+                    startPage = totalPages - maxPagesToShow + 1;
+                    endPage = totalPages;
+                } else {
+                    startPage = currentPage - maxPagesBeforeCurrent;
+                    endPage = currentPage + maxPagesAfterCurrent;
+                }
+            }
+        %>
+
+        <% if (currentPage > 1) { %>
+            <li class="page-item"><a class="page-link" href="/admin/movies?page=1&search=<%= searchQuery %>">Đầu</a></li>
+            <li class="page-item"><a class="page-link" href="/admin/movies?page=<%= currentPage - 1 %>&search=<%= searchQuery %>">Trước</a></li>
+        <% } %>
+
+        <% if (startPage > 1) { %>
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+        <% } %>
+
+        <% for(let i = startPage; i <= endPage; i++) { %>
+            <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+                <a class="page-link" href="/admin/movies?page=<%= i %>&search=<%= searchQuery %>"><%= i %></a>
+            </li>
+        <% } %>
+
+        <% if (endPage < totalPages) { %>
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+        <% } %>
+
+        <% if (currentPage < totalPages) { %>
+            <li class="page-item"><a class="page-link" href="/admin/movies?page=<%= currentPage + 1 %>&search=<%= searchQuery %>">Sau</a></li>
+            <li class="page-item"><a class="page-link" href="/admin/movies?page=<%= totalPages %>&search=<%= searchQuery %>">Cuối</a></li>
+        <% } %>
+    </ul>
 </nav>
 <% } %>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const movieCheckboxes = document.querySelectorAll('.movie-checkbox');
+    const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+    const bulkDeleteForm = document.getElementById('bulk-delete-form');
+    
+    const actionBar = document.getElementById('bulk-action-bar');
+    const actionBarAll = document.getElementById('bulk-action-bar-all');
+    const selectionCountSpan = document.getElementById('selection-count');
+    const selectAllDbLink = document.getElementById('select-all-db');
+    const clearSelectionLink = document.getElementById('clear-selection');
+
+    const updateUI = () => {
+        const checkedCount = document.querySelectorAll('.movie-checkbox:checked').length;
+        const allCheckedOnPage = checkedCount === movieCheckboxes.length && movieCheckboxes.length > 0;
+        
+        selectAllCheckbox.checked = allCheckedOnPage;
+        bulkDeleteBtn.disabled = checkedCount === 0 && !document.getElementById('select-all-flag');
+
+        if (document.getElementById('select-all-flag')) {
+            actionBar.classList.add('d-none');
+            actionBarAll.classList.remove('d-none');
+        } else if (checkedCount > 0) {
+            actionBar.classList.remove('d-none');
+            actionBarAll.classList.add('d-none');
+            selectionCountSpan.textContent = checkedCount;
+        } else {
+            actionBar.classList.add('d-none');
+            actionBarAll.classList.add('d-none');
+        }
+    };
+
+    selectAllCheckbox.addEventListener('change', (e) => {
+        movieCheckboxes.forEach(checkbox => {
+            checkbox.checked = e.target.checked;
+        });
+        updateUI();
+    });
+
+    movieCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateUI);
+    });
+
+    selectAllDbLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const flagInput = document.createElement('input');
+        flagInput.type = 'hidden';
+        flagInput.name = 'selectAll';
+        flagInput.value = 'true';
+        flagInput.id = 'select-all-flag';
+        bulkDeleteForm.appendChild(flagInput);
+        
+        selectAllCheckbox.checked = true;
+        movieCheckboxes.forEach(checkbox => checkbox.checked = true);
+        updateUI();
+    });
+
+    clearSelectionLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const flagInput = document.getElementById('select-all-flag');
+        if (flagInput) {
+            flagInput.remove();
+        }
+        selectAllCheckbox.checked = false;
+        movieCheckboxes.forEach(checkbox => checkbox.checked = false);
+        updateUI();
+    });
+
+    bulkDeleteForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const checkedCount = document.querySelectorAll('.movie-checkbox:checked').length;
+        const isSelectAll = !!document.getElementById('select-all-flag');
+        
+        if (checkedCount === 0 && !isSelectAll) {
+            Swal.fire('Chưa chọn!', 'Vui lòng chọn ít nhất một phim để xóa.', 'warning');
+            return;
+        }
+
+        const totalToDelete = isSelectAll ? '<%= movieCount %>' : checkedCount;
+        const confirmationMessage = `Bạn có chắc chắn muốn xóa ${totalToDelete} phim đã chọn không? Hành động này sẽ xóa cả ảnh liên quan và không thể hoàn tác.`;
+
+        Swal.fire({
+            title: 'Xác nhận xóa',
+            text: confirmationMessage,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Vâng, xóa hết!',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                e.target.submit();
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-form').forEach(form => {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Bạn có chắc muốn xóa phim này?',
+                text: "Hành động này sẽ xóa cả ảnh liên quan và không thể hoàn tác!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Vâng, xóa nó!',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.submit();
+                }
+            });
+        });
+    });
+
+    updateUI();
+});
+</script>

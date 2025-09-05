@@ -2,6 +2,8 @@ const { Movie, Category, Country, User, Year, Episode, sequelize } = require('..
 const { Op } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
+const { promisify } = require('util');
+const rmAsync = promisify(fs.rm);
 
 // Trang Dashboard (giữ nguyên)
 exports.showDashboard = async (req, res) => {
@@ -42,6 +44,7 @@ exports.showMovies = async (req, res) => {
             title: 'Quản lý Phim',
             layout: 'layouts/admin',
             movies,
+            movieCount: count,
             currentPage: page,
             totalPages: Math.ceil(count / limit),
             searchQuery
@@ -52,7 +55,7 @@ exports.showMovies = async (req, res) => {
     }
 };
 
-// Hiển thị form sửa phim
+// Hiển thị form sửa phim (giữ nguyên)
 exports.showEditMovieForm = async (req, res) => {
     try {
         const movie = await Movie.findByPk(req.params.id, {
@@ -82,7 +85,7 @@ exports.showEditMovieForm = async (req, res) => {
     }
 };
 
-// Cập nhật thông tin phim
+// Cập nhật thông tin phim (giữ nguyên)
 exports.updateMovie = async (req, res) => {
     const t = await sequelize.transaction();
     try {
@@ -107,10 +110,29 @@ exports.updateMovie = async (req, res) => {
     }
 };
 
-// Xóa phim
+// Helper function để xóa thư mục ảnh của phim
+const deleteMovieImages = async (movie) => {
+    if (movie && movie.slug) {
+        const movieImageDir = path.join(__dirname, `../public/images/${movie.slug}`);
+        try {
+            if (fs.existsSync(movieImageDir)) {
+                await rmAsync(movieImageDir, { recursive: true, force: true });
+            }
+        } catch (err) {
+            console.error(`Lỗi khi xóa thư mục ảnh cho phim ${movie.slug}:`, err);
+            // Có thể bỏ qua lỗi này và tiếp tục xóa bản ghi DB
+        }
+    }
+};
+
+// Xóa một phim
 exports.deleteMovie = async (req, res) => {
     try {
-        await Movie.destroy({ where: { _id: req.params.id } });
+        const movie = await Movie.findByPk(req.params.id);
+        if (movie) {
+            await deleteMovieImages(movie);
+            await movie.destroy();
+        }
         res.redirect('/admin/movies');
     } catch (error) {
         console.error(error);
@@ -118,7 +140,44 @@ exports.deleteMovie = async (req, res) => {
     }
 };
 
-// Upload ảnh (chỉ còn dùng cho poster và thumbnail)
+// Xóa nhiều phim
+exports.bulkDeleteMovies = async (req, res) => {
+    try {
+        const { movieIds, selectAll } = req.body;
+
+        if (selectAll === 'true') {
+            // Xóa tất cả phim theo từng lô để tránh timeout
+            let moviesToDelete;
+            const batchSize = 100;
+            do {
+                moviesToDelete = await Movie.findAll({ limit: batchSize });
+                for (const movie of moviesToDelete) {
+                    await deleteMovieImages(movie);
+                }
+                const ids = moviesToDelete.map(m => m._id);
+                if (ids.length > 0) {
+                    await Movie.destroy({ where: { _id: { [Op.in]: ids } } });
+                }
+            } while (moviesToDelete.length > 0);
+        } else if (movieIds && movieIds.length > 0) {
+            const ids = Array.isArray(movieIds) ? movieIds : [movieIds];
+            const movies = await Movie.findAll({ where: { _id: { [Op.in]: ids } } });
+            for (const movie of movies) {
+                await deleteMovieImages(movie);
+            }
+            await Movie.destroy({ where: { _id: { [Op.in]: ids } } });
+        } else {
+            return res.redirect('/admin/movies?error=No movies selected');
+        }
+        
+        res.redirect('/admin/movies');
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Lỗi khi xóa phim.');
+    }
+};
+
+// Upload ảnh (giữ nguyên)
 exports.uploadImage = async (req, res) => {
     try {
         const { id } = req.params;
@@ -160,7 +219,7 @@ exports.uploadImage = async (req, res) => {
     }
 };
 
-// HÀM MỚI: LẤY NỘI DUNG AI CỦA MỘT PHIM
+// Lấy và cập nhật nội dung AI (giữ nguyên)
 exports.getAiContent = async (req, res) => {
     try {
         const movie = await Movie.findByPk(req.params.id, {
@@ -176,7 +235,6 @@ exports.getAiContent = async (req, res) => {
     }
 };
 
-// HÀM CẬP NHẬT NỘI DUNG AI - ĐÃ SỬA LỖI
 exports.updateAiContent = async (req, res) => {
     try {
         const movieId = req.params.id;
@@ -188,7 +246,6 @@ exports.updateAiContent = async (req, res) => {
         );
 
         if (affectedRows === 0) {
-            // Có thể phim không tồn tại, hoặc nội dung gửi lên giống hệt nội dung cũ
             const movieExists = await Movie.findByPk(movieId);
             if (!movieExists) {
                  return res.status(404).json({ success: false, message: 'Không tìm thấy phim để cập nhật.' });
@@ -202,6 +259,9 @@ exports.updateAiContent = async (req, res) => {
     }
 };
 
+
+// Các hàm quản lý khác (giữ nguyên)
+// ... (các hàm còn lại không thay đổi)
 
 // ===============================================
 // QUẢN LÝ TẬP PHIM

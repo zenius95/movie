@@ -19,7 +19,7 @@
                     <tr>
                         <td><strong><%= item.year %></strong></td>
                         <td>
-                            <form action="/admin/years/delete/<%= item.year %>" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa năm này?');">
+                            <form action="/admin/years/delete/<%= item.year %>" method="POST" class="delete-form">
                                 <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
                             </form>
                         </td>
@@ -52,3 +52,25 @@
     </div>
   </div>
 </div>
+
+<script>
+document.querySelectorAll('.delete-form').forEach(form => {
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Bạn có chắc muốn xóa năm này?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Vâng, xóa nó!',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                this.submit();
+            }
+        });
+    });
+});
+</script>

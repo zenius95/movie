@@ -54,7 +54,7 @@
                         </div>
 
                         <div class="tab-pane fade" id="ai-content-tab-pane" role="tabpanel">
-                             <div class="mb-3">
+                            <div class="mb-3">
                                 <label for="ai_content" class="form-label">Nội dung do AI tạo</label>
                                 <textarea class="form-control" id="ai_content" name="ai_content" rows="15"><%- movie.ai_content %></textarea>
                             </div>
@@ -85,7 +85,7 @@
                                                 <td><input type="text" class="form-control form-control-sm" value="<%= ep.link_embed %>" readonly></td>
                                                 <td><input type="text" class="form-control form-control-sm" value="<%= ep.link_m3u8 || '' %>" readonly></td>
                                                 <td class="text-end">
-                                                    <form action="/admin/episodes/delete/<%= ep.id %>" method="POST" onsubmit="return confirm('Bạn chắc chắn muốn xóa tập này?')">
+                                                    <form action="/admin/episodes/delete/<%= ep.id %>" method="POST" class="delete-form d-inline">
                                                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                                                     </form>
                                                 </td>
@@ -118,6 +118,7 @@
                                         }
                                     }
                                 %>
+                                
                                 <% if (images.length > 0) { %>
                                     <% images.forEach(imageUrl => { %>
                                         <div class="col-md-4">
@@ -229,6 +230,7 @@
                 </div>
             </div>
             
+            
             <div class="card shadow-sm mb-4">
                 <div class="card-header">Ảnh Thumbnail</div>
                 <div class="card-body">
@@ -293,7 +295,6 @@
             theme: "bootstrap-5",
             placeholder: "Chọn..."
         });
-
         $('#content, #ai_content').summernote({
             placeholder: 'Nhập nội dung...',
             tabsize: 2,
@@ -307,6 +308,27 @@
                 ['insert', ['link', 'picture', 'video']],
                 ['view', ['fullscreen', 'codeview', 'help']]
             ]
+        });
+
+        // SweetAlert for delete forms
+        document.querySelectorAll('.delete-form').forEach(form => {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                Swal.fire({
+                    title: 'Bạn có chắc muốn xóa tập này?',
+                    text: "Hành động này không thể hoàn tác!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Vâng, xóa nó!',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
         });
     })
 </script>

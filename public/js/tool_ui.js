@@ -117,10 +117,22 @@ function createToolInterface(config) {
 
     if (config.elements.clearLogButton) {
         config.elements.clearLogButton.addEventListener('click', () => {
-            if (confirm('Bạn có chắc chắn muốn xóa vĩnh viễn file log không?')) {
-                socket.emit(`${config.socketEventPrefix}:clear-log`);
-                config.elements.logContainer.innerHTML = '';
-            }
+            Swal.fire({
+                title: 'Bạn có chắc chắn muốn xóa?',
+                text: "Hành động này sẽ xóa vĩnh viễn file log và không thể hoàn tác!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Vâng, xóa nó!',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    socket.emit(`${config.socketEventPrefix}:clear-log`);
+                    config.elements.logContainer.innerHTML = '';
+                    Swal.fire('Đã xóa!', 'File log đã được xóa.', 'success');
+                }
+            });
         });
     }
 

@@ -3,10 +3,21 @@ const {
 } = require('../models');
 const { fetchApi } = require('../utils/apiFetcher');
 const fetch = require('node-fetch');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
-const LOG_FILE_PATH = path.join(__dirname, '..', 'sync.log');
+const LOG_FILE_PATH = path.join(__dirname, '..', 'logs', 'sync.log');
+const API_BASE_URL = process.env.OPHIM_API_URL || 'https://ophim1.com/v1';
+
+let syncState = {
+    status: 'idle', logs: [], results: [],
+    progress: { processed: 0, total: 0, success: 0, errors: 0 },
+    options: {},
+    proxies: [],
+    currentProxyIndex: 0
+};
 
 // Hàm đọc log từ file khi khởi tạo
 const loadInitialState = () => {
@@ -14,44 +25,47 @@ const loadInitialState = () => {
     if (fs.existsSync(LOG_FILE_PATH)) {
         const logData = fs.readFileSync(LOG_FILE_PATH, 'utf-8');
         logs = logData.split('\n').filter(Boolean).map(line => {
-            try {
-                return JSON.parse(line);
-            } catch (e) {
-                return null;
-            }
+            try { return JSON.parse(line); } catch (e) { return null; }
         }).filter(Boolean);
     }
-    return {
-        status: 'idle',
-        logs: logs,
-        results: [],
-        progress: { processed: 0, total: 0, success: 0, errors: 0 },
-        options: {}
-    };
+    syncState.logs = logs;
 };
 
-let syncState = loadInitialState();
+loadInitialState();
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const log = (io, type, message) => {
     const logEntry = { type, message, timestamp: new Date().toLocaleTimeString() };
-    
-    // Ghi vào state và file
     syncState.logs.push(logEntry);
     fs.appendFileSync(LOG_FILE_PATH, JSON.stringify(logEntry) + '\n');
-
     if (syncState.logs.length > 500) {
         syncState.logs.splice(0, syncState.logs.length - 500);
-        // Cắt bớt file log để không quá lớn
         const lines = fs.readFileSync(LOG_FILE_PATH, 'utf-8').split('\n').filter(Boolean);
         const newLines = lines.slice(lines.length - 500);
         fs.writeFileSync(LOG_FILE_PATH, newLines.join('\n') + '\n');
     }
-
-    console.log(`[SYNC][${type.toUpperCase()}] ${message}`);
     if(io) io.emit('sync-log', logEntry);
 };
+
+const getProxyAgent = () => {
+    if (syncState.proxies.length === 0) return null;
+    const proxyUrl = syncState.proxies[syncState.currentProxyIndex];
+    return new HttpsProxyAgent(proxyUrl);
+};
+
+const rotateProxy = (io, originalError) => {
+    if (syncState.proxies.length === 0) return false;
+    log(io, 'warning', `Proxy hiện tại gặp lỗi (${originalError.code || 'Connection Error'}). Đang thử chuyển sang proxy tiếp theo...`);
+    syncState.currentProxyIndex++;
+    if (syncState.currentProxyIndex >= syncState.proxies.length) {
+        log(io, 'error', 'Tất cả các proxy đều đã được thử và thất bại.');
+        return false; // No more proxies
+    }
+    log(io, 'info', `Đã chuyển sang proxy: ${syncState.proxies[syncState.currentProxyIndex]}`);
+    return true; // Switched to a new proxy
+};
+
 
 const control = {
     start: (io, options) => {
@@ -59,20 +73,26 @@ const control = {
             log(io, 'error', 'Một tiến trình đồng bộ khác đang chạy. Vui lòng đợi.');
             return;
         }
-        if (fs.existsSync(LOG_FILE_PATH)) {
-            fs.writeFileSync(LOG_FILE_PATH, '');
-        }
+        if (fs.existsSync(LOG_FILE_PATH)) fs.writeFileSync(LOG_FILE_PATH, '');
+        
         syncState = { 
+            ...syncState,
             status: 'running', 
             logs: [], 
             results: [], 
             progress: { processed: 0, total: 0, success: 0, errors: 0 }, 
-            options: options 
+            options: options,
+            proxies: options.proxies || [],
+            currentProxyIndex: 0
         };
+        
         io.emit('sync-state', syncState);
         log(io, 'info', '====================');
         log(io, 'info', 'BẮT ĐẦU TIẾN TRÌNH ĐỒNG BỘ MỚI');
         log(io, 'info', '====================');
+        if (syncState.proxies.length > 0) {
+            log(io, 'info', `Sử dụng proxy: ${syncState.proxies[0]}`);
+        }
         startSync(io, options); 
     },
     pause: (io) => {
@@ -89,22 +109,19 @@ const control = {
             io.emit('sync-state', syncState);
         }
     },
-    stop: (io) => {
-        if (syncState.status === 'running' || syncState.status === 'paused') {
-            const previousStatus = syncState.status;
-            syncState.status = 'stopped';
-            log(io, 'error', 'Tiến trình đã được yêu cầu dừng lại.');
-            io.emit('sync-state', syncState); // Gửi trạng thái ngay lập tức
-            if (previousStatus === 'paused') {
-                io.emit('sync-finished', syncState.status);
-            }
+    stop: (io, reason) => {
+        if (syncState.status === 'stopped') return;
+        const previousStatus = syncState.status;
+        syncState.status = 'stopped';
+        log(io, 'error', reason || 'Tiến trình đã được yêu cầu dừng lại.');
+        io.emit('sync-state', syncState);
+        if (previousStatus === 'paused' || !reason) {
+            io.emit('sync-finished', syncState.status);
         }
     },
     getState: () => syncState,
     clearLog: () => {
-        if (fs.existsSync(LOG_FILE_PATH)) {
-            fs.writeFileSync(LOG_FILE_PATH, '');
-        }
+        if (fs.existsSync(LOG_FILE_PATH)) fs.writeFileSync(LOG_FILE_PATH, '');
         syncState.logs = [];
     }
 };
@@ -127,96 +144,114 @@ async function startSync(io, options) {
     const { 
         sync_type, sync_value, maxPages, limit, delayPages, 
         delayBatches, concurrency, sync_value_text,
-        category, country, year, sort_field, sort_type, post_status
+        category, country, year, sort_field, sort_type, post_status,
+        movie_links
     } = options;
     
     try {
         await initDb();
-        
-        let basePath;
-        switch (sync_type) {
-            case 'danh-muc': basePath = `/api/danh-sach/${sync_value}`; break;
-            case 'the-loai': basePath = `/api/the-loai/${sync_value}`; break;
-            case 'quoc-gia': basePath = `/api/quoc-gia/${sync_value}`; break;
-            case 'nam-phat-hanh': basePath = `/api/nam-phat-hanh/${sync_value}`; break;
-            case 'tim-kiem': basePath = `/api/tim-kiem`; break;
-            default: throw new Error(`Loại đồng bộ không hợp lệ: ${sync_type}`);
-        }
+        let moviesToProcess = [];
 
-        const queryParams = new URLSearchParams();
-        if (sort_field) queryParams.append('sort_field', sort_field);
-        if (sort_type) queryParams.append('sort_type', sort_type);
+        if (movie_links && movie_links.trim() !== '') {
+            log(io, 'info', 'PHASE 1: Đồng bộ từ danh sách link được cung cấp.');
+            const links = movie_links.split('\n').map(l => l.trim()).filter(Boolean);
+            moviesToProcess = links.map(link => {
+                try {
+                    const url = new URL(link);
+                    const slug = path.basename(url.pathname);
+                    return { slug, name: slug }; // Tên sẽ được cập nhật sau khi fetch
+                } catch (e) {
+                    log(io, 'warning', `Bỏ qua link không hợp lệ: ${link}`);
+                    return null;
+                }
+            }).filter(Boolean);
 
-        switch (sync_type) {
-            case 'danh-muc':
-                if (category) queryParams.append('category', category);
-                if (country) queryParams.append('country', country);
-                if (year) queryParams.append('year', year);
-                break;
-            case 'the-loai':
-                if (country) queryParams.append('country', country);
-                if (year) queryParams.append('year', year);
-                break;
-            case 'quoc-gia':
-                if (year) queryParams.append('year', year);
-                break;
-            case 'nam-phat-hanh':
-                if (category) queryParams.append('category', category);
-                if (country) queryParams.append('country', country);
-                break;
-        }
-        const filterQueryString = queryParams.toString();
-        
-        const syncTypeMap = {
-            'danh-muc': 'danh mục', 'the-loai': 'thể loại', 'quoc-gia': 'quốc gia',
-            'nam-phat-hanh': 'năm phát hành', 'tim-kiem': 'từ khóa'
-        };
-        const readableSyncType = syncTypeMap[sync_type] || sync_type;
-        const readableSyncValue = sync_value_text && sync_value_text.trim() !== '' ? sync_value_text : sync_value;
-
-        log(io, 'info', `PHASE 1: Tìm kiếm phim từ ${readableSyncType}: ${readableSyncValue}`);
-        
-        const allMoviesFound = [];
-        let currentPage = 1;
-        let totalPages = Infinity;
-
-        while (currentPage <= totalPages && (maxPages === 0 || currentPage <= maxPages)) {
-            await checkStatus(io);
-            
-            let apiUrl = `${basePath}?page=${currentPage}&limit=${limit}`;
-            if (sync_type === 'tim-kiem') apiUrl += `&keyword=${encodeURIComponent(sync_value)}`;
-            if (filterQueryString) apiUrl += `&${filterQueryString}`;
-            
-            log(io, 'info', `  - Đang quét trang: ${currentPage}`);
-            const data = await fetchApi(apiUrl);
-
-            if (!data || !data.data || !data.data.items || data.data.items.length === 0) break;
-            
-            const pagination = data.data.params.pagination;
-            totalPages = Math.ceil(pagination.totalItems / pagination.totalItemsPerPage) || 1;
-
-            const moviesFromApi = data.data.items;
-            const movieIds = moviesFromApi.map(m => m._id);
-            const existingMovies = await Movie.findAll({ where: { _id: movieIds }, attributes: ['_id', 'modified_at'] });
-            const existingMoviesMap = new Map(existingMovies.map(m => [m._id, new Date(m.modified_at).getTime()]));
-            const moviesToAdd = moviesFromApi.filter(apiMovie => {
-                const existingTimestamp = existingMoviesMap.get(apiMovie._id);
-                const apiTimestamp = new Date(apiMovie.modified.time).getTime();
-                return !existingTimestamp || apiTimestamp > existingTimestamp;
-            });
-            
-            if (moviesToAdd.length > 0) {
-                 moviesToAdd.forEach(movie => allMoviesFound.push({ slug: movie.slug, name: movie.name }));
-                 log(io, 'info', `    -> Tìm thấy ${moviesToAdd.length} phim mới/cần cập nhật trên trang ${currentPage}.`);
-            } else {
-                 log(io, 'info', `    -> Không có phim mới/cập nhật trên trang ${currentPage}.`);
+        } else {
+             let basePath;
+            switch (sync_type) {
+                case 'danh-muc': basePath = `/api/danh-sach/${sync_value}`; break;
+                case 'the-loai': basePath = `/api/the-loai/${sync_value}`; break;
+                case 'quoc-gia': basePath = `/api/quoc-gia/${sync_value}`; break;
+                case 'nam-phat-hanh': basePath = `/api/nam-phat-hanh/${sync_value}`; break;
+                case 'tim-kiem': basePath = `/api/tim-kiem`; break;
+                default: throw new Error(`Loại đồng bộ không hợp lệ: ${sync_type}`);
             }
-           
-            currentPage++;
-            if (delayPages > 0) await sleep(delayPages);
+
+            const queryParams = new URLSearchParams();
+            if (sort_field) queryParams.append('sort_field', sort_field);
+            if (sort_type) queryParams.append('sort_type', sort_type);
+
+            switch (sync_type) {
+                case 'danh-muc':
+                    if (category) queryParams.append('category', category);
+                    if (country) queryParams.append('country', country);
+                    if (year) queryParams.append('year', year);
+                    break;
+                case 'the-loai':
+                    if (country) queryParams.append('country', country);
+                    if (year) queryParams.append('year', year);
+                    break;
+                case 'quoc-gia':
+                    if (year) queryParams.append('year', year);
+                    break;
+                case 'nam-phat-hanh':
+                    if (category) queryParams.append('category', category);
+                    if (country) queryParams.append('country', country);
+                    break;
+            }
+            const filterQueryString = queryParams.toString();
+            
+            const syncTypeMap = {
+                'danh-muc': 'danh mục', 'the-loai': 'thể loại', 'quoc-gia': 'quốc gia',
+                'nam-phat-hanh': 'năm phát hành', 'tim-kiem': 'từ khóa'
+            };
+            const readableSyncType = syncTypeMap[sync_type] || sync_type;
+            const readableSyncValue = sync_value_text && sync_value_text.trim() !== '' ? sync_value_text : sync_value;
+
+            log(io, 'info', `PHASE 1: Tìm kiếm phim từ ${readableSyncType}: ${readableSyncValue}`);
+            
+            let currentPage = 1;
+            let totalPages = Infinity;
+
+            while (currentPage <= totalPages && (maxPages === 0 || currentPage <= maxPages)) {
+                await checkStatus(io);
+                
+                let apiUrl = `${basePath}?page=${currentPage}&limit=${limit}`;
+                if (sync_type === 'tim-kiem') apiUrl += `&keyword=${encodeURIComponent(sync_value)}`;
+                if (filterQueryString) apiUrl += `&${filterQueryString}`;
+                
+                log(io, 'info', `  - Đang quét trang: ${currentPage}`);
+                const data = await fetchApi(apiUrl, getProxyAgent());
+
+                if (!data || !data.data || !data.data.items || data.data.items.length === 0) break;
+                
+                const pagination = data.data.params.pagination;
+                totalPages = Math.ceil(pagination.totalItems / pagination.totalItemsPerPage) || 1;
+
+                const moviesFromApi = data.data.items;
+                const movieIds = moviesFromApi.map(m => m._id);
+                const existingMovies = await Movie.findAll({ where: { _id: movieIds }, attributes: ['_id', 'modified_at'] });
+                const existingMoviesMap = new Map(existingMovies.map(m => [m._id, new Date(m.modified_at).getTime()]));
+                const moviesToAdd = moviesFromApi.filter(apiMovie => {
+                    const existingTimestamp = existingMoviesMap.get(apiMovie._id);
+                    const apiTimestamp = new Date(apiMovie.modified.time).getTime();
+                    return !existingTimestamp || apiTimestamp > existingTimestamp;
+                });
+                
+                if (moviesToAdd.length > 0) {
+                     const foundLinks = moviesToAdd.map(movie => `${API_BASE_URL}/api/phim/${movie.slug}`);
+                     io.emit('sync:movies-found', foundLinks); // Gửi link về client
+                     moviesToAdd.forEach(movie => moviesToProcess.push({ slug: movie.slug, name: movie.name }));
+                     log(io, 'info', `    -> Tìm thấy ${moviesToAdd.length} phim mới/cần cập nhật trên trang ${currentPage}.`);
+                } else {
+                     log(io, 'info', `    -> Không có phim mới/cập nhật trên trang ${currentPage}.`);
+                }
+               
+                currentPage++;
+                if (delayPages > 0) await sleep(delayPages);
+            }
         }
         
-        let moviesToProcess = allMoviesFound;
         log(io, 'info', `PHASE 1 KẾT THÚC: Tìm thấy ${moviesToProcess.length} phim.`);
         syncState.progress.total = moviesToProcess.length;
         io.emit('sync-start', { total: moviesToProcess.length });
@@ -248,8 +283,7 @@ async function startSync(io, options) {
         if (error.message === 'Sync stopped by user') {
             log(io, 'error', '⏹️ ĐỒNG BỘ ĐÃ DỪNG THEO YÊU CẦU.');
         } else {
-            log(io, 'error', `❌ Đã xảy ra lỗi nghiêm trọng: ${error.message}`);
-            console.error(error);
+            control.stop(io, `❌ Đã xảy ra lỗi nghiêm trọng: ${error.message}`);
         }
     } finally {
         if (syncState.status !== 'stopped') {
@@ -261,15 +295,19 @@ async function startSync(io, options) {
 
 async function processMovieBySlug(slug, movieName, io, post_status) {
     const MAX_RETRIES = 3;
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    let currentRetries = 0;
+
+    while(currentRetries < MAX_RETRIES) {
         try {
             await checkStatus(io);
-            log(io, 'info', `  -> Đang xử lý phim: "${movieName}" (Lần thử ${attempt})`);
+            log(io, 'info', `  -> Đang xử lý phim: "${movieName}" (Lần thử ${currentRetries + 1})`);
+            
+            const agent = getProxyAgent();
 
             const [movieDetail, peopleDetail, imageDetail] = await Promise.all([
-                fetchApi(`/api/phim/${slug}`),
-                fetchApi(`/api/phim/${slug}/peoples`),
-                fetchApi(`/api/phim/${slug}/images`)
+                fetchApi(`/api/phim/${slug}`, agent),
+                fetchApi(`/api/phim/${slug}/peoples`, agent),
+                fetchApi(`/api/phim/${slug}/images`, agent)
             ]);
 
             if (!movieDetail || !movieDetail.data || !movieDetail.data.item) {
@@ -360,7 +398,7 @@ async function processMovieBySlug(slug, movieName, io, post_status) {
                 }
                 
                 await t.commit();
-                const movieResult = {
+                return {
                     _id: movieData._id,
                     name: movieData.name,
                     thumb: localThumbPath,
@@ -370,23 +408,27 @@ async function processMovieBySlug(slug, movieName, io, post_status) {
                     categories: movieData.category.map(c => c.name).join(', '),
                     countries: movieData.country.map(c => c.name).join(', ')
                 };
-                return movieResult; // Success
-            } catch (error) {
-                if (t && !t.finished) {
-                    await t.rollback();
-                }
-                throw error; // Ném lỗi để vòng lặp retry bắt
+            } catch (dbError) {
+                if (t && !t.finished) await t.rollback();
+                throw dbError;
             }
+
         } catch (error) {
-            log(io, 'error', `Lỗi xử lý phim "${movieName}" (lần thử ${attempt}): ${error.message}`);
-            if (attempt === MAX_RETRIES) {
-                log(io, 'error', `Bỏ qua phim "${movieName}" sau ${MAX_RETRIES} lần thử thất bại.`);
-                return null; // Thất bại sau tất cả các lần thử
-            }
-            if (error.message === 'Sync stopped by user') throw error;
-            await sleep(2000); // Đợi 2 giây trước khi thử lại
+             const networkErrors = ['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ECONNREFUSED', 'API Error'];
+             if (networkErrors.some(e => error.message.includes(e)) && syncState.proxies.length > 0) {
+                if (!rotateProxy(io, error)) {
+                    throw new Error('Tất cả proxy đều thất bại.');
+                }
+             } else {
+                log(io, 'error', `Lỗi xử lý phim "${movieName}" (lần thử ${currentRetries + 1}): ${error.message}`);
+                currentRetries++;
+                if (error.message === 'Sync stopped by user') throw error;
+                await sleep(2000);
+             }
         }
     }
+     log(io, 'error', `Bỏ qua phim "${movieName}" sau ${MAX_RETRIES} lần thử thất bại.`);
+     return null;
 }
 
 
@@ -396,10 +438,12 @@ async function downloadImage(url, destPath, io, retries = 3) {
         return;
     };
     
-    for (let i = 0; i < retries; i++) {
+    let currentRetries = 0;
+    while(currentRetries < retries) {
         try {
             await checkStatus(io);
-            const response = await fetch(url, { timeout: 15000 });
+            const agent = getProxyAgent();
+            const response = await fetch(url, { agent, timeout: 15000 });
             if (!response.ok) throw new Error(`Server response: ${response.statusText}`);
             
             const fileStream = fs.createWriteStream(destPath);
@@ -408,13 +452,21 @@ async function downloadImage(url, destPath, io, retries = 3) {
                 response.body.on("error", reject);
                 fileStream.on("finish", resolve);
             });
-            return;
+            return; // Success
         } catch (error) {
-            log(io, 'warning', `Lần ${i + 1}/${retries}: Lỗi khi tải ảnh từ ${url}. Thử lại sau 1 giây...`);
-            if (i === retries - 1) {
-                log(io, 'error', `Không thể tải ảnh từ ${url} sau ${retries} lần thử. Lỗi: ${error.message}`);
-            } else {
-                await sleep(1000);
+            const networkErrors = ['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ECONNREFUSED'];
+             if (networkErrors.some(e => error.message.includes(e)) && syncState.proxies.length > 0) {
+                 if (!rotateProxy(io, error)) {
+                    throw new Error('Tất cả proxy đều thất bại khi tải ảnh.');
+                }
+             } else {
+                log(io, 'warning', `Lần ${currentRetries + 1}/${retries}: Lỗi khi tải ảnh từ ${url}. Thử lại sau 1 giây...`);
+                currentRetries++;
+                if (currentRetries === retries) {
+                     log(io, 'error', `Không thể tải ảnh từ ${url} sau ${retries} lần thử. Lỗi: ${error.message}`);
+                } else {
+                    await sleep(1000);
+                }
             }
         }
     }

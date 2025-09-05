@@ -1,89 +1,117 @@
 <div class="row g-4">
-    <div class="col-lg-4 col-xl-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-header d-flex align-items-center">
-                <i class="bi bi-gear-fill me-2"></i>
-                <h5 class="mb-0">Bảng điều khiển</h5>
-            </div>
-            <div class="card-body d-flex flex-column">
-                <div id="settings-form">
-                    <h6>Tùy chọn</h6>
-                    <div class="row g-2 mb-3">
-                        <div class="col"><label for="maxPages" class="form-label">Giới hạn trang (0=all)</label><input type="number" class="form-control form-control-sm" id="maxPages" value="0"></div>
-                        <div class="col"><label for="limit" class="form-label">Phim/Trang</label><input type="number" class="form-control form-control-sm" id="limit" value="24"></div>
-                        <div class="col"><label for="concurrency" class="form-label">Đồng thời</label><input type="number" class="form-control form-control-sm" id="concurrency" value="3"></div>
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col"><label for="delayPages" class="form-label">Delay Trang</label><input type="number" class="form-control form-control-sm" id="delayPages" value="300"></div>
-                        <div class="col"><label for="delayBatches" class="form-label">Delay Lô</label><input type="number" class="form-control form-control-sm" id="delayBatches" value="1000"></div>
-                    </div>
-                    <h6>Nguồn Đồng bộ</h6>
-                    <div class="input-group mb-3">
-                        <select class="form-select form-select-sm" id="sync-type" style="flex-grow: 0; width: auto;">
-                            <option value="danh-muc" selected>Danh mục</option>
-                            <option value="the-loai">Thể loại</option>
-                            <option value="quoc-gia">Quốc gia</option>
-                            <option value="nam-phat-hanh">Năm</option>
-                            <option value="tim-kiem">Từ khóa</option>
-                        </select>
-                        <select class="form-select form-select-sm" id="sync-value"></select>
-                        <input type="text" class="form-control form-control-sm d-none" id="sync-keyword" placeholder="Nhập từ khóa...">
-                    </div>
-                    <h6>Lọc & Sắp xếp</h6>
-                    <div class="row g-2 mb-3">
-                        <div class="col-12" id="category-filter-container">
-                            <label for="category-filter" class="form-label">Lọc theo Thể loại</label>
-                            <select id="category-filter" class="form-select form-select-sm"></select>
-                        </div>
-                        <div class="col-6" id="country-filter-container">
-                            <label for="country-filter" class="form-label">Lọc theo Quốc gia</label>
-                            <select id="country-filter" class="form-select form-select-sm"></select>
-                        </div>
-                        <div class="col-6" id="year-filter-container">
-                            <label for="year-filter" class="form-label">Lọc theo Năm</label>
-                            <select id="year-filter" class="form-select form-select-sm"></select>
-                        </div>
-                    </div>
-                    <div class="row g-2 mb-3" id="sort-container">
-                        <div class="col">
-                            <label for="sort_field" class="form-label">Sắp xếp theo</label>
-                            <select id="sort_field" class="form-select form-select-sm">
-                                <option value="">Mặc định</option>
-                                <option value="modified.time">Thời gian sửa</option>
-                                <option value="year">Năm</option>
-                                <option value="_id">ID</option>
-                            </select>
-                        </div>
-                        <div class="col">
-                            <label for="sort_type" class="form-label">Thứ tự</label>
-                            <select id="sort_type" class="form-select form-select-sm">
-                                <option value="">Mặc định</option>
-                                <option value="desc">Giảm dần</option>
-                                <option value="asc">Tăng dần</option>
-                            </select>
-                        </div>
-                    </div>
-                     <div class="mb-3">
-                        <label for="post_status" class="form-label">Trạng thái sau khi đồng bộ</label>
-                        <select id="post_status" class="form-select form-select-sm">
-                            <option value="">Không đổi</option>
-                            <option value="Publish">Publish</option>
-                            <option value="Draft">Draft</option>
-                        </select>
-                    </div>
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-gear-fill me-2"></i>Bảng điều khiển & Cài đặt Đồng bộ</h5>
+                <div class="d-flex gap-2">
+                    <button id="syncButton" class="btn btn-primary"><i class="bi bi-arrow-repeat me-2"></i><span id="button-text">Bắt đầu</span></button>
+                    <button id="pauseButton" class="btn btn-warning" disabled><i class="bi bi-pause-fill me-1"></i>Tạm dừng</button>
+                    <button id="stopButton" class="btn btn-danger" disabled><i class="bi bi-stop-circle-fill me-1"></i>Dừng</button>
                 </div>
-                <div class="mt-auto">
-                    <div class="d-grid gap-2">
-                        <button id="syncButton" class="btn btn-primary btn-lg"><i class="bi bi-arrow-repeat me-2"></i><span id="button-text">Bắt đầu</span></button>
-                        <div class="btn-group">
-                            <button id="pauseButton" class="btn btn-warning w-50" disabled><i class="bi bi-pause-fill me-1"></i>Tạm dừng</button>
-                            <button id="stopButton" class="btn btn-danger w-50" disabled><i class="bi bi-stop-circle-fill me-1"></i>Dừng</button>
+            </div>
+            <div class="card-body">
+                <div id="settings-form" class="row g-3">
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-funnel-fill"></i> Nguồn & Lọc</h5>
+                        <hr class="mt-1">
+                        <div id="source-filters">
+                             <label class="form-label">Nguồn Đồng bộ</label>
+                             <div class="input-group mb-3">
+                                <select class="form-select form-select-sm" id="sync-type" style="flex-grow: 0; width: auto;">
+                                    <option value="danh-muc" selected>Danh mục</option>
+                                    <option value="the-loai">Thể loại</option>
+                                    <option value="quoc-gia">Quốc gia</option>
+                                    <option value="nam-phat-hanh">Năm</option>
+                                    <option value="tim-kiem">Từ khóa</option>
+                                </select>
+                                <select class="form-select form-select-sm" id="sync-value"></select>
+                                <input type="text" class="form-control form-control-sm d-none" id="sync-keyword" placeholder="Nhập từ khóa...">
+                            </div>
+                            <label class="form-label">Lọc & Sắp xếp</label>
+                            <div class="row g-2">
+                                <div class="col-md-4" id="category-filter-container">
+                                    <select id="category-filter" class="form-select form-select-sm" data-placeholder="Lọc theo Thể loại"></select>
+                                </div>
+                                <div class="col-md-2" id="country-filter-container">
+                                    <select id="country-filter" class="form-select form-select-sm" data-placeholder="Lọc theo QG"></select>
+                                </div>
+                                <div class="col-md-2" id="year-filter-container">
+                                    <select id="year-filter" class="form-select form-select-sm" data-placeholder="Lọc theo Năm"></select>
+                                </div>
+                                <div class="col-md-2" id="sort-container">
+                                    <select id="sort_field" class="form-select form-select-sm">
+                                        <option value="">Sắp xếp</option>
+                                        <option value="modified.time">Thời gian sửa</option>
+                                        <option value="year">Năm</option>
+                                        <option value="_id">ID</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="sort_type" class="form-select form-select-sm">
+                                        <option value="">Thứ tự</option>
+                                        <option value="desc">Giảm dần</option>
+                                        <option value="asc">Tăng dần</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-sliders"></i> Tùy chọn Nâng cao & Mạng</h5>
+                        <hr class="mt-1">
+                         <div class="row g-3">
+                            <div class="col-sm-6">
+                                <label for="maxPages" class="form-label">Giới hạn trang quét (0=all)</label>
+                                <input type="number" class="form-control form-control-sm" id="maxPages" value="0">
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="limit" class="form-label">Số phim trên mỗi trang</label>
+                                <input type="number" class="form-control form-control-sm" id="limit" value="24">
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="concurrency" class="form-label">Số phim xử lý đồng thời</label>
+                                <input type="number" class="form-control form-control-sm" id="concurrency" value="3">
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="post_status" class="form-label">Trạng thái sau khi đồng bộ</label>
+                                <select id="post_status" class="form-select form-select-sm">
+                                    <option value="">Không đổi</option>
+                                    <option value="Publish">Publish</option>
+                                    <option value="Draft">Draft</option>
+                                </select>
+                            </div>
+                             <div class="col-sm-6">
+                                 <label for="delayPages" class="form-label">Delay giữa các trang (ms)</label>
+                                 <input type="number" class="form-control form-control-sm" id="delayPages" value="300">
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="delayBatches" class="form-label">Delay giữa các lô (ms)</label>
+                                <input type="number" class="form-control form-control-sm" id="delayBatches" value="1000">
+                            </div>
+                             <div class="col-12">
+                                <label for="proxies" class="form-label">Danh sách Proxy (mỗi proxy một dòng)</label>
+                                <textarea class="form-control form-control-sm" id="proxies" rows="2" placeholder="http://user:pass@host:port"></textarea>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-link-45deg me-2"></i>Đồng bộ theo danh sách Link API</h5>
+            </div>
+            <div class="card-body">
+                <textarea class="form-control form-control-sm" id="movie-links-textarea" rows="8" placeholder="Mỗi link một dòng... ví dụ: https://ophim1.com/v1/api/phim/ten-phim"></textarea>
+                <small class="form-text text-muted">Nếu có dữ liệu ở đây, hệ thống sẽ ưu tiên đồng bộ theo danh sách này và bỏ qua các cài đặt ở trên.</small>
+            </div>
+        </div>
+    </div>
+
     <div class="col-lg-8 col-xl-9">
         <div class="card shadow-sm mb-4">
             <div class="card-header"><h5 class="mb-0">Tiến trình</h5></div>
@@ -119,12 +147,14 @@
                 </div>
             </div>
         </div>
-        <div class="card shadow-sm mt-4">
+    </div>
+    <div class="col-lg-4 col-xl-3">
+        <div class="card shadow-sm h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Log chi tiết</h5>
                 <button class="btn btn-sm btn-outline-danger" id="clear-log-btn"><i class="bi bi-trash"></i> Xóa Log</button>
             </div>
-            <div id="log-container" class="card-body" style="max-height: 250px; overflow-y: auto; font-size: 0.8rem; line-height: 1.5;"></div>
+            <div id="log-container" class="card-body" style="max-height: 565px; overflow-y: auto; font-size: 0.8rem; line-height: 1.5;"></div>
         </div>
     </div>
 </div>
@@ -146,7 +176,10 @@ document.addEventListener('DOMContentLoaded', () => {
             statFound: document.getElementById('stat-found'),
             statSuccess: document.getElementById('stat-success'),
             statErrors: document.getElementById('stat-errors'),
-            inputs: document.querySelectorAll('#settings-form input, #settings-form select'),
+            inputs: document.querySelectorAll('#settings-form input, #settings-form select, #settings-form textarea, #movie-links-textarea'),
+            sourceFilters: document.getElementById('source-filters'),
+            movieLinksTextarea: document.getElementById('movie-links-textarea'),
+            proxies: document.getElementById('proxies'),
             syncType: document.getElementById('sync-type'),
             syncValueSelect: document.getElementById('sync-value'),
             syncKeywordInput: document.getElementById('sync-keyword'),
@@ -155,10 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
             yearFilter: document.getElementById('year-filter'),
             sortField: document.getElementById('sort_field'),
             sortType: document.getElementById('sort_type'),
-            sortContainer: document.getElementById('sort-container'),
-            categoryFilterContainer: document.getElementById('category-filter-container'),
-            countryFilterContainer: document.getElementById('country-filter-container'),
-            yearFilterContainer: document.getElementById('year-filter-container'),
             clearLogButton: document.getElementById('clear-log-btn'),
         },
         getSettings: () => {
@@ -170,14 +199,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 delayBatches: parseInt(document.getElementById('delayBatches').value, 10) || 1000,
                 concurrency: parseInt(document.getElementById('concurrency').value, 10) || 3,
                 sync_type: syncToolConfig.elements.syncType.value,
-                sync_value: syncToolConfig.elements.syncType.value === 'tim-kiem' ? syncToolConfig.elements.syncKeywordInput.value : syncToolConfig.elements.syncValueSelect.value,
-                sync_value_text: syncToolConfig.elements.syncType.value === 'tim-kiem' ? syncToolConfig.elements.syncKeywordInput.value : (selectedOption ? selectedOption.text : ''),
+                sync_value: syncToolConfig.elements.syncType.value === 'tim-kiem' ?
+                    syncToolConfig.elements.syncKeywordInput.value : syncToolConfig.elements.syncValueSelect.value,
+                sync_value_text: syncToolConfig.elements.syncType.value === 'tim-kiem' ?
+                    syncToolConfig.elements.syncKeywordInput.value : (selectedOption ? selectedOption.text : ''),
                 category: syncToolConfig.elements.categoryFilter.value,
                 country: syncToolConfig.elements.countryFilter.value,
                 year: syncToolConfig.elements.yearFilter.value,
                 sort_field: syncToolConfig.elements.sortField.value,
                 sort_type: syncToolConfig.elements.sortType.value,
                 post_status: document.getElementById('post_status').value,
+                movie_links: syncToolConfig.elements.movieLinksTextarea.value,
+                proxies: syncToolConfig.elements.proxies.value.split('\n').map(p => p.trim()).filter(Boolean)
             };
         },
         loadSettings: (saved) => {
@@ -188,10 +221,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('concurrency').value = saved.hasOwnProperty('concurrency') ? saved.concurrency : 3;
             syncToolConfig.elements.syncType.value = saved.sync_type || 'danh-muc';
             document.getElementById('post_status').value = saved.post_status || '';
+            syncToolConfig.elements.movieLinksTextarea.value = saved.movie_links || '';
+            syncToolConfig.elements.proxies.value = (saved.proxies || []).join('\n');
         },
         validateOptions: (options) => {
-            if (!options.sync_value) {
-                alert('Vui lòng chọn hoặc nhập giá trị cho nguồn đồng bộ.');
+            if (options.movie_links.trim() === '' && !options.sync_value) {
+                Swal.fire('Thiếu thông tin!', 'Vui lòng chọn nguồn đồng bộ hoặc điền danh sách link phim.', 'warning');
                 return false;
             }
             return true;
@@ -213,6 +248,12 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         customSocketEvents: (socket, ui) => {
              socket.on('movie-synced', ui.addResultRow);
+             socket.on('sync:movies-found', (links) => {
+                const currentLinks = syncToolConfig.elements.movieLinksTextarea.value;
+                const newLinks = links.join('\n');
+                syncToolConfig.elements.movieLinksTextarea.value = (currentLinks ? currentLinks + '\n' : '') + newLinks;
+                syncToolConfig.elements.movieLinksTextarea.dispatchEvent(new Event('change'));
+             });
         },
         initialize: () => {
             const SOURCE_CATEGORIES = [
@@ -226,10 +267,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     const response = await fetch(url);
                     const data = await response.json();
-                    selectElement.innerHTML = addAllOption ? '<option value="">Tất cả</option>' : '';
+                    const options = addAllOption ? [{ value: '', text: selectElement.dataset.placeholder || 'Tất cả' }] : [];
                     data.data.items.forEach(item => {
-                        selectElement.innerHTML += `<option value="${item[valueKey]}">${item[nameKey]}</option>`;
+                        options.push({ value: item[valueKey], text: item[nameKey] });
                     });
+                     selectElement.innerHTML = options.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('');
                 } catch (error) {
                     selectElement.innerHTML = '<option value="">Lỗi khi tải</option>';
                 }
@@ -239,12 +281,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const type = syncToolConfig.elements.syncType.value;
                 const { syncValueSelect, syncKeywordInput, sortContainer, categoryFilterContainer, countryFilterContainer, yearFilterContainer } = syncToolConfig.elements;
                 
-                syncValueSelect.classList.toggle('d-none', type === 'tim-kiem');
-                syncKeywordInput.classList.toggle('d-none', type !== 'tim-kiem');
-                sortContainer.style.display = type === 'tim-kiem' ? 'none' : 'flex';
-                categoryFilterContainer.style.display = (type === 'tim-kiem' || type === 'the-loai') ? 'none' : 'block';
-                countryFilterContainer.style.display = (type === 'tim-kiem' || type === 'quoc-gia') ? 'none' : 'block';
-                yearFilterContainer.style.display = (type === 'tim-kiem' || type === 'nam-phat-hanh') ? 'none' : 'block';
+                const isSearch = type === 'tim-kiem';
+                syncValueSelect.classList.toggle('d-none', isSearch);
+                syncKeywordInput.classList.toggle('d-none', !isSearch);
+                
+                if (document.getElementById('sort-container')) {
+                    document.getElementById('sort-container').style.display = isSearch ? 'none' : 'block';
+                }
+                if (categoryFilterContainer) categoryFilterContainer.style.display = (isSearch || type === 'the-loai') ? 'none' : 'block';
+                if (countryFilterContainer) countryFilterContainer.style.display = (isSearch || type === 'quoc-gia') ? 'none' : 'block';
+                if (yearFilterContainer) yearFilterContainer.style.display = (isSearch || type === 'nam-phat-hanh') ? 'none' : 'block';
 
                 switch(type) {
                     case 'danh-muc':
@@ -261,14 +307,30 @@ document.addEventListener('DOMContentLoaded', () => {
                         break;
                 }
             }
+            
+            const toggleFilters = () => {
+                const hasLinks = syncToolConfig.elements.movieLinksTextarea.value.trim() !== '';
+                const isDisabled = hasLinks;
+                
+                syncToolConfig.elements.sourceFilters.querySelectorAll('input, select').forEach(el => {
+                    el.disabled = isDisabled;
+                });
+                syncToolConfig.elements.sourceFilters.style.opacity = isDisabled ? 0.5 : 1;
+                syncToolConfig.elements.sourceFilters.style.pointerEvents = isDisabled ? 'none' : 'auto';
+            };
+
+            syncToolConfig.elements.movieLinksTextarea.addEventListener('input', toggleFilters);
+            syncToolConfig.elements.movieLinksTextarea.addEventListener('change', toggleFilters);
 
             Promise.all([
                 populateSelect(syncToolConfig.elements.categoryFilter, '/api/the-loai', 'slug', 'name'),
                 populateSelect(syncToolConfig.elements.countryFilter, '/api/quoc-gia', 'slug', 'name'),
                 populateSelect(syncToolConfig.elements.yearFilter, '/api/nam-phat-hanh', 'year', 'year')
             ]).then(() => {
+    
                 updateSyncValueOptions();
                 syncToolConfig.elements.syncType.addEventListener('change', updateSyncValueOptions);
+                toggleFilters();
             });
         }
     };

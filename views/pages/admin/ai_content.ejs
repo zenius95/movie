@@ -1,11 +1,9 @@
 <style>
     /* CSS cho hiệu ứng loading */
     #loading-overlay {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background-color: rgba(0, 0, 0, 0.7); z-index: 9999;
-        display: flex; justify-content: center;
-        align-items: center;
+        display: flex; justify-content: center; align-items: center;
         flex-direction: column; color: white;
     }
     .spinner-border { width: 3rem; height: 3rem; }
@@ -24,81 +22,85 @@
 </div>
 
 <div class="row g-4">
-    <div class="col-lg-4 col-xl-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-header d-flex align-items-center">
-                <i class="bi bi-robot me-2"></i>
-                <h5 class="mb-0">Bảng điều khiển AI</h5>
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-robot me-2"></i>Bảng điều khiển & Cài đặt AI</h5>
+                 <div class="d-flex gap-2">
+                    <button id="startButton" class="btn btn-primary"><i class="bi bi-play-circle-fill me-2"></i><span id="button-text">Bắt đầu</span></button>
+                    <button id="pauseButton" class="btn btn-warning" disabled><i class="bi bi-pause-fill me-1"></i>Tạm dừng</button>
+                    <button id="stopButton" class="btn btn-danger" disabled><i class="bi bi-stop-circle-fill me-1"></i>Dừng</button>
+                </div>
             </div>
-            <div class="card-body d-flex flex-column">
-                <div id="settings-form" class="flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
-                    <h6><i class="bi bi-gear-wide-connected"></i> Cài đặt</h6>
-                     <div class="mb-3">
-                        <label for="ai-target" class="form-label">Mục tiêu</label>
-                        <select class="form-select form-select-sm" id="ai-target">
-                            <option value="all" selected>Tất cả phim</option>
-                            <option value="empty">Chỉ phim chưa có nội dung AI</option>
-                            <option value="random_10">10 phim ngẫu nhiên</option>
-                        </select>
+            <div class="card-body">
+                <div id="settings-form" class="row g-3">
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-gear-wide-connected"></i> Cài đặt & Mạng</h5>
+                        <hr class="mt-1">
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <label for="ai-target" class="form-label">Mục tiêu</label>
+                                <select class="form-select form-select-sm" id="ai-target">
+                                    <option value="all" selected>Tất cả phim</option>
+                                    <option value="empty">Chỉ phim chưa có nội dung AI</option>
+                                    <option value="random_10">10 phim ngẫu nhiên</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="ai-model" class="form-label">Chọn model</label>
+                                <select class="form-select form-select-sm" id="ai-model">
+                                    <option value="gpt-4o">GPT-4o (Mới nhất)</option>
+                                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                    <option value="gpt-3.5-turbo-1106" selected>GPT-3.5 Turbo (Nhanh & Rẻ)</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="concurrency" class="form-label">Chạy đồng thời</label>
+                                <input type="number" class="form-control form-control-sm" id="concurrency" value="3">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="delay" class="form-label">Delay mỗi lô (ms)</label>
+                                <input type="number" class="form-control form-control-sm" id="delay" value="1000">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="post_status" class="form-label">Trạng thái sau khi tạo</label>
+                                <select id="post_status" class="form-select form-select-sm">
+                                    <option value="">Không đổi</option>
+                                    <option value="Publish">Publish</option>
+                                    <option value="Draft">Draft</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="api-key" class="form-label">OpenAI API Key(s)</label>
+                                <textarea class="form-control form-control-sm" id="api-key" rows="3" placeholder="Nhập mỗi key một dòng..."></textarea>
+                                <small class="form-text text-muted">Nếu bỏ trống, hệ thống sẽ dùng key từ file `.env`.</small>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="ai-model" class="form-label">Chọn model</label>
-                        <select class="form-select form-select-sm" id="ai-model">
-                            <option value="gpt-4o">GPT-4o (Mới nhất)</option>
-                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                            <option value="gpt-3.5-turbo-1106" selected>GPT-3.5 Turbo (Nhanh & Rẻ)</option>
-                            <option value="gpt-5-pro" disabled>GPT-5 Pro (Chưa phát hành)</option>
-                        </select>
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col"><label for="concurrency" class="form-label">Chạy đồng thời</label><input type="number" class="form-control form-control-sm" id="concurrency" value="3"></div>
-                        <div class="col"><label for="delay" class="form-label">Delay mỗi lô (ms)</label><input type="number" class="form-control form-control-sm" id="delay" value="1000"></div>
-                    </div>
-                     <div class="mb-3">
-                        <label for="post_status" class="form-label">Trạng thái sau khi tạo</label>
-                        <select id="post_status" class="form-select form-select-sm">
-                            <option value="">Không đổi</option>
-                            <option value="Publish">Publish</option>
-                            <option value="Draft">Draft</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="api-key" class="form-label">OpenAI API Key(s)</label>
-                        <textarea class="form-control form-control-sm" id="api-key" rows="3" placeholder="Nhập mỗi key một dòng..."></textarea>
-                        <small class="form-text text-muted">Nếu bỏ trống, hệ thống sẽ dùng key từ file `.env`.</small>
-                    </div>
-                    <hr>
-                    
-                    <h6><i class="bi bi-file-text"></i> Cài đặt Prompt</h6>
-                    <div class="mb-3">
-                        <label for="ai-system-prompt" class="form-label">System Prompt</label>
-                        <textarea class="form-control form-control-sm" id="ai-system-prompt" rows="4">Bạn là một trợ lý AI chuyên tạo ra nội dung HTML và đóng gói nó trong một cấu trúc JSON.
+
+                    <div class="col-md-6">
+                         <h5><i class="bi bi-file-text"></i> Cài đặt Prompt</h5>
+                         <hr class="mt-1">
+                         <div class="mb-3">
+                            <label for="ai-system-prompt" class="form-label">System Prompt</label>
+                            <textarea class="form-control form-control-sm" id="ai-system-prompt" rows="5">Bạn là một trợ lý AI chuyên tạo ra nội dung HTML và đóng gói nó trong một cấu trúc JSON.
 Mọi phản hồi của bạn BẮT BUỘC phải là một đối tượng JSON hợp lệ và không chứa bất kỳ ký tự nào khác bên ngoài nó.
 Đối tượng JSON phải tuân thủ nghiêm ngặt cấu trúc sau: {"content": "chuỗi_html_cua_ban"}.
 Giá trị của khóa "content" phải là một chuỗi (string) duy nhất chứa mã HTML.</textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="ai-user-prompt" class="form-label">User Prompt</label>
-                        <textarea class="form-control form-control-sm" id="ai-user-prompt" rows="5">Dựa vào thông tin ban đầu về phim "{name}", hãy viết một bài đánh giá chi tiết bằng HTML...</textarea>
-                         <small class="form-text text-muted">Các biến: `{name}`, `{origin_name}`, `{slug}`, `{content}`, `{year}`...</small>
-                    </div>
-                </div>
-
-                <div class="mt-auto pt-3">
-                    <div class="d-grid gap-2">
-                        <button id="startButton" class="btn btn-primary btn-lg"><i class="bi bi-play-circle-fill me-2"></i><span id="button-text">Bắt đầu</span></button>
-                        <div class="btn-group">
-                            <button id="pauseButton" class="btn btn-warning w-50" disabled><i class="bi bi-pause-fill me-1"></i>Tạm dừng</button>
-                            <button id="stopButton" class="btn btn-danger w-50" disabled><i class="bi bi-stop-circle-fill me-1"></i>Dừng</button>
+                        </div>
+                        <div class="mb-3">
+                            <label for="ai-user-prompt" class="form-label">User Prompt</label>
+                            <textarea class="form-control form-control-sm" id="ai-user-prompt" rows="5">Dựa vào thông tin ban đầu về phim "{name}", hãy viết một bài đánh giá chi tiết bằng HTML...</textarea>
+                            <small class="form-text text-muted">Các biến: `{name}`, `{origin_name}`, `{slug}`, `{content}`, `{year}`...</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="col-lg-8 col-xl-9">
-        <div class="card shadow-sm mb-4">
+    
+    <div class="col-12">
+         <div class="card shadow-sm">
             <div class="card-header"><h5 class="mb-0">Tiến trình Tạo Nội Dung</h5></div>
             <div class="card-body">
                 <div class="progress" role="progressbar" style="height: 25px;">
@@ -111,6 +113,9 @@ Giá trị của khóa "content" phải là một chuỗi (string) duy nhất ch
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="col-lg-7">
         <div class="card shadow-sm">
             <div class="card-header"><h5 class="mb-0">Kết quả (Lần chạy gần nhất)</h5></div>
             <div class="card-body p-0">
@@ -128,12 +133,14 @@ Giá trị của khóa "content" phải là một chuỗi (string) duy nhất ch
                 </div>
             </div>
         </div>
-        <div class="card shadow-sm mt-4">
+    </div>
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Log chi tiết</h5>
                 <button class="btn btn-sm btn-outline-danger" id="clear-log-btn"><i class="bi bi-trash"></i> Xóa Log</button>
             </div>
-            <div id="log-container" class="card-body" style="max-height: 250px; overflow-y: auto; font-size: 0.8rem; line-height: 1.5;"></div>
+            <div id="log-container" class="card-body" style="max-height: 400px; overflow-y: auto; font-size: 0.8rem; line-height: 1.5;"></div>
         </div>
     </div>
 </div>
@@ -146,7 +153,7 @@ Giá trị của khóa "content" phải là một chuỗi (string) duy nhất ch
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
-              <textarea id="aiContentEditor"></textarea>
+             <textarea id="aiContentEditor"></textarea>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
@@ -170,6 +177,7 @@ Giá trị của khóa "content" phải là một chuỗi (string) duy nhất ch
                 logContainer: document.getElementById('log-container'),
                 resultsBody: document.getElementById('results-body'),
                 progressBar: document.getElementById('progress-bar'),
+                
                 statFound: document.getElementById('stat-found'),
                 statSuccess: document.getElementById('stat-success'),
                 statErrors: document.getElementById('stat-errors'),
@@ -211,7 +219,7 @@ Giá trị của khóa "content" phải là một chuỗi (string) duy nhất ch
             },
             validateOptions: (options) => {
                 if (!options.systemPrompt.trim() || !options.userPrompt.trim()) {
-                    alert('Vui lòng nhập đầy đủ System Prompt và User Prompt.');
+                    Swal.fire('Thiếu thông tin!', 'Vui lòng nhập đầy đủ System Prompt và User Prompt.', 'warning');
                     return false;
                 }
                 return true;
@@ -280,10 +288,9 @@ Giá trị của khóa "content" phải là một chuỗi (string) duy nhất ch
                                     ['view', ['fullscreen', 'codeview', 'help']]
                                 ]
                             });
-                            
                             config.elements.modal.instance.show();
                         } catch (error) {
-                            alert(`Lỗi khi tải nội dung: ${error.message}`);
+                            Swal.fire('Lỗi!', `Lỗi khi tải nội dung: ${error.message}`, 'error');
                         }
                     }
                 }
@@ -328,13 +335,13 @@ Giá trị của khóa "content" phải là một chuỗi (string) duy nhất ch
                         const result = await response.json();
                         if (result.success) {
                             processedItems[movieId].ai_content = newContentJSON;
-                            alert('Lưu thành công!');
+                            Swal.fire('Thành công!', 'Lưu thay đổi thành công!', 'success');
                             config.elements.modal.instance.hide();
                         } else {
                             throw new Error(result.message || 'Lỗi không xác định.');
                         }
                     } catch (error) {
-                        alert(`Lưu thất bại: ${error.message}`);
+                        Swal.fire('Lỗi!', `Lưu thất bại: ${error.message}`, 'error');
                     } finally {
                         button.disabled = false;
                         button.innerHTML = 'Lưu thay đổi';

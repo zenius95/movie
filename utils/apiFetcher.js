@@ -3,17 +3,17 @@ require('dotenv').config();
 
 const API_BASE_URL = process.env.OPHIM_API_URL || 'https://ophim1.com/v1';
 
-async function fetchApi(endpoint) {
+async function fetchApi(endpoint, agent = null) {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, { agent });
     if (!response.ok) {
-      // console.error(`API Error: ${response.status} for ${endpoint}`);
-      return null;
+      // Ném lỗi để logic retry có thể bắt được
+      throw new Error(`API Error: ${response.status} for ${endpoint}`);
     }
     return await response.json();
   } catch (error) {
-    console.error(`Fetch failed for ${endpoint}:`, error);
-    return null;
+    // Ném lại lỗi để hàm gọi có thể xử lý
+    throw error;
   }
 }
 

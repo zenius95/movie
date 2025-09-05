@@ -5,7 +5,7 @@ const { Op } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
 
-const LOG_FILE_PATH = path.join(__dirname, '..', 'ai_content.log');
+const LOG_FILE_PATH = path.join(__dirname, '..', 'logs', 'ai_content.log');
 
 function loadInitialState(logPath) {
     let logs = [];
@@ -30,7 +30,6 @@ function log(io, message, type = 'info') {
     const logEntry = { type, message, timestamp: new Date().toLocaleTimeString() };
     contentState.logs.push(logEntry);
     fs.appendFileSync(LOG_FILE_PATH, JSON.stringify(logEntry) + '\n');
-    console.log(`[AI-CONTENT][${type.toUpperCase()}] ${message}`);
     if (io) io.emit('ai-log', logEntry);
 }
 

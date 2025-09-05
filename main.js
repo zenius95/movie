@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const http = require('http');
@@ -28,7 +29,7 @@ const myStore = new SequelizeStore({
 });
 
 app.use(session({
-  secret: 'a-very-secret-key-that-is-long-and-random',
+  secret: process.env.SESSION_SECRET,
   store: myStore,
   resave: false,
   proxy: true,

@@ -11,6 +11,7 @@ router.get('/', adminController.showDashboard);
 
 // Movie Routes
 router.get('/movies', adminController.showMovies);
+router.post('/movies/bulk-delete', adminController.bulkDeleteMovies); // ROUTE MỚI
 router.get('/movies/edit/:id', adminController.showEditMovieForm);
 router.post('/movies/edit/:id', adminController.updateMovie);
 router.post('/movies/delete/:id', adminController.deleteMovie);
