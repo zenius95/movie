@@ -13,7 +13,12 @@ function createToolInterface(config) {
             config.elements.buttonText.textContent = isRunning ? 'Đang chạy...' : 'Bắt đầu';
             config.elements.pauseButton.disabled = !isRunning;
             config.elements.stopButton.disabled = !isRunning;
-            config.elements.inputs.forEach(input => input.disabled = isRunning);
+            
+            // Logic vô hiệu hóa input được chuyển cho từng trang cụ thể quản lý
+            if (config.onStateChange) {
+                config.onStateChange(state);
+            }
+
             config.elements.pauseButton.innerHTML = isPaused ? '<i class="bi bi-play-fill me-1"></i>Tiếp tục' : '<i class="bi bi-pause-fill me-1"></i>Tạm dừng';
             config.elements.pauseButton.classList.toggle('btn-warning', !isPaused);
             config.elements.pauseButton.classList.toggle('btn-info', isPaused);
@@ -25,7 +30,6 @@ function createToolInterface(config) {
             
             config.elements.resultsBody.innerHTML = '';
             
-            // THAY ĐỔI: Xóa object cũ thay vì tạo mới để giữ nguyên tham chiếu
             Object.keys(processedItems).forEach(key => delete processedItems[key]);
             
             state.results.forEach(this.addResultRow);

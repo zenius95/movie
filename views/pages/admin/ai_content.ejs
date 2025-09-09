@@ -224,6 +224,12 @@ Giá trị của khóa "content" phải là một chuỗi (string) duy nhất ch
                 }
                 return true;
             },
+            onStateChange: (state) => {
+                const isRunning = state.status === 'running' || state.status === 'paused';
+                config.elements.inputs.forEach(input => {
+                    input.disabled = isRunning;
+                });
+            },
             renderResultRow: (movie, processedItems) => {
                 processedItems[movie._id] = movie;
                 const newRow = config.elements.resultsBody.insertRow(0);

@@ -27,18 +27,21 @@
                                 <select class="form-select form-select-sm" id="sync-value"></select>
                                 <input type="text" class="form-control form-control-sm d-none" id="sync-keyword" placeholder="Nhập từ khóa...">
                             </div>
-                            <label class="form-label">Lọc & Sắp xếp</label>
-                            <div class="row g-2">
-                                <div class="col-md-4" id="category-filter-container">
+                            <label class="form-label">Lọc</label>
+                            <div class="row mb-3">
+                                <div class="col-4" id="category-filter-container">
                                     <select id="category-filter" class="form-select form-select-sm" data-placeholder="Lọc theo Thể loại"></select>
                                 </div>
-                                <div class="col-md-2" id="country-filter-container">
+                                <div class="col-4" id="country-filter-container">
                                     <select id="country-filter" class="form-select form-select-sm" data-placeholder="Lọc theo QG"></select>
                                 </div>
-                                <div class="col-md-2" id="year-filter-container">
+                                <div class="col-4" id="year-filter-container">
                                     <select id="year-filter" class="form-select form-select-sm" data-placeholder="Lọc theo Năm"></select>
                                 </div>
-                                <div class="col-md-2" id="sort-container">
+                            </div>
+                            <label class="form-label">Sắp xếp</label>
+                            <div class="row">
+                                <div class="col-4" id="sort-container">
                                     <select id="sort_field" class="form-select form-select-sm">
                                         <option value="">Sắp xếp</option>
                                         <option value="modified.time">Thời gian sửa</option>
@@ -46,7 +49,7 @@
                                         <option value="_id">ID</option>
                                     </select>
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-4">
                                     <select id="sort_type" class="form-select form-select-sm">
                                         <option value="">Thứ tự</option>
                                         <option value="desc">Giảm dần</option>
@@ -246,6 +249,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><span class="badge ${syncStatusClass}">${movie.status}</span></td>
             `;
         },
+        onStateChange: (state) => {
+            const isRunning = state.status === 'running' || state.status === 'paused';
+            syncToolConfig.elements.inputs.forEach(input => {
+                input.disabled = isRunning;
+            });
+            if (!isRunning) {
+                // Chỉ bật lại bộ lọc nguồn nếu textarea link trống
+                const hasLinks = syncToolConfig.elements.movieLinksTextarea.value.trim() !== '';
+                const sourceFiltersDisabled = hasLinks;
+                syncToolConfig.elements.sourceFilters.querySelectorAll('input, select').forEach(el => {
+                    el.disabled = sourceFiltersDisabled;
+                });
+                // Cập nhật giao diện người dùng để phản ánh trạng thái bị vô hiệu hóa
+                syncToolConfig.elements.sourceFilters.style.opacity = sourceFiltersDisabled ? 0.5 : 1;
+                syncToolConfig.elements.sourceFilters.style.pointerEvents = sourceFiltersDisabled ? 'none' : 'auto';
+            }
+        },
         customSocketEvents: (socket, ui) => {
              socket.on('movie-synced', ui.addResultRow);
              socket.on('sync:movies-found', (links) => {
@@ -309,6 +329,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const toggleFilters = () => {
+                const isRunning = syncToolConfig.elements.startButton.disabled;
+                if (isRunning) return;
+
                 const hasLinks = syncToolConfig.elements.movieLinksTextarea.value.trim() !== '';
                 const isDisabled = hasLinks;
                 
